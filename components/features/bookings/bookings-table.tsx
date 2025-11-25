@@ -93,7 +93,7 @@ export function BookingsTable({ bookings, onStatusUpdate, onEdit, onCancel }: Bo
                 </Select>
             </div>
 
-            <div className="rounded-md border bg-white shadow-sm">
+            <div className="rounded-md border bg-white shadow-sm overflow-x-auto">
                 <Table>
                     <TableHeader>
                         <TableRow>

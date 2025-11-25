@@ -11,6 +11,7 @@ export type Booking = {
     lease_end_date: string | null
     docusign_link: string | null
     status: 'Pending' | 'Approved' | 'Active' | 'Ending' | 'Completed' | 'Rejected' | 'Cancelled'
+    monthly_rent: number | null
     storage_units: {
         unit_number: string
         facility: string

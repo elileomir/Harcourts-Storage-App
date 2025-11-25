@@ -24,6 +24,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const supabase = createClient()
 
     useEffect(() => {
+        // Check for existing session on mount
+        const initializeAuth = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession()
+                setSession(session)
+                setUser(session?.user ?? null)
+
+                if (session?.user) {
+                    // Fetch profile to get role with retry logic
+                    let retries = 3
+                    while (retries > 0) {
+                        const { data: profile, error } = await supabase
+                            .from('profiles')
+                            .select('role')
+                            .eq('id', session.user.id)
+                            .single()
+
+                        if (!error && profile) {
+                            setRole(profile.role ?? 'user')
+                            break
+                        }
+
+                        retries--
+                        if (retries > 0) {
+                            await new Promise(resolve => setTimeout(resolve, 1000))
+                        } else {
+                            // Fallback to user metadata or default
+                            setRole(session.user.user_metadata?.role ?? 'user')
+                        }
+                    }
+                } else {
+                    setRole(null)
+                }
+
+                setIsLoading(false)
+            } catch (error) {
+                console.error('Error initializing auth:', error)
+                setIsLoading(false)
+            }
+        }
+
+        initializeAuth()
+
+        // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
                 setSession(session)
@@ -37,12 +81,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         .eq('id', session.user.id)
                         .single()
 
-                    setRole(profile?.role ?? 'user')
+                    setRole(profile?.role ?? session.user.user_metadata?.role ?? 'user')
                 } else {
                     setRole(null)
                 }
 
-                setIsLoading(false)
                 if (event === 'SIGNED_OUT') {
                     router.push('/login')
                 }

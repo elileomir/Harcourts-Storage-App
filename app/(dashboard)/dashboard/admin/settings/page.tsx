@@ -110,6 +110,38 @@ export default function AdminSettingsPage() {
                                 Total credits provided in the monthly plan. Used to calculate cost per credit.
                             </p>
                         </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="revenue_commission_rate">Revenue Commission Rate (%)</Label>
+                            <Input
+                                id="revenue_commission_rate"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                max="1"
+                                value={formData['revenue_commission_rate'] ? (parseFloat(formData['revenue_commission_rate']) * 100).toString() : ''}
+                                onChange={e => setFormData({ ...formData, 'revenue_commission_rate': (parseFloat(e.target.value) / 100).toString() })}
+                                placeholder="10"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Percentage of monthly rent taken as commission (e.g., 10 for 10%). Used in revenue and ROI calculations.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="pt-4 border-t">
+                        <div className="space-y-2">
+                            <Label htmlFor="app_domain">Application Domain</Label>
+                            <Input
+                                id="app_domain"
+                                type="url"
+                                value={formData['app_domain'] || ''}
+                                onChange={e => setFormData({ ...formData, 'app_domain': e.target.value })}
+                                placeholder="https://harcourtsstorageapp.netlify.app"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Your application&apos;s domain URL. Used for email invitation redirects and authentication callbacks.
+                            </p>
+                        </div>
                     </div>
 
                     <div className="pt-4 border-t">

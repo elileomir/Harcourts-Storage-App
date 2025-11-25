@@ -16,21 +16,37 @@ const supabaseAdmin = createClient(
     }
 )
 
-export async function inviteUser(email: string) {
+export async function inviteUser(email: string, role: string = 'user') {
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
         return { error: 'Service Role Key is missing. Please add SUPABASE_SERVICE_ROLE_KEY to .env.local' }
     }
 
     try {
-        // Redirect to auth callback which will handle the invite flow
-        const redirectUrl = process.env.NODE_ENV === 'production'
-            ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/callback?type=invite`
-            : 'http://localhost:3000/auth/callback?type=invite'
+        // Get app domain from platform settings
+        const { data: settings } = await supabaseAdmin
+            .from('platform_settings')
+            .select('setting_value')
+            .eq('setting_key', 'app_domain')
+            .single()
+
+        const appDomain = settings?.setting_value || 'https://harcourtsstorageapp.netlify.app'
+        const redirectUrl = `${appDomain}/auth/callback?type=invite`
 
         const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-            redirectTo: redirectUrl
+            redirectTo: redirectUrl,
+            data: {
+                role: role
+            }
         })
         if (error) throw error
+
+        // Set user role in user_metadata
+        if (data.user) {
+            await supabaseAdmin.auth.admin.updateUserById(data.user.id, {
+                user_metadata: { role }
+            })
+        }
+
         revalidatePath('/dashboard/users')
         return { success: true, data }
     } catch (error: unknown) {
@@ -46,9 +62,31 @@ export async function listUsers() {
     }
 
     try {
+        // Get users from auth
         const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers()
         if (error) throw error
-        return users
+
+        // Get roles from profiles table
+        const { data: profiles, error: profileError } = await supabaseAdmin
+            .from('profiles')
+            .select('id, role')
+
+        if (profileError) {
+            console.error('Error fetching profiles:', profileError)
+        }
+
+        // Map users with their roles from profiles
+        const usersWithRoles = users.map(user => {
+            const profile = profiles?.find(p => p.id === user.id)
+            return {
+                id: user.id,
+                email: user.email,
+                role: profile?.role || user.user_metadata?.role || 'user',
+                created_at: user.created_at
+            }
+        })
+
+        return usersWithRoles
     } catch (error) {
         console.error('Error listing users:', error)
         return []
@@ -61,8 +99,48 @@ export async function deleteUser(userId: string) {
     }
 
     try {
+        // Delete from profiles table first
+        const { error: profileError } = await supabaseAdmin
+            .from('profiles')
+            .delete()
+            .eq('id', userId)
+
+        if (profileError) {
+            console.error('Error deleting profile:', profileError)
+            // Continue anyway to delete auth user
+        }
+
+        // Delete from auth
         const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
         if (error) throw error
+
+        revalidatePath('/dashboard/users')
+        return { success: true }
+    } catch (error: unknown) {
+        return { error: error instanceof Error ? error.message : 'An unknown error occurred' }
+    }
+}
+
+export async function updateUserRole(userId: string, role: string) {
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        return { error: 'Service Role Key is missing.' }
+    }
+
+    try {
+        // Update user metadata
+        const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+            user_metadata: { role }
+        })
+        if (authError) throw authError
+
+        // Update profiles table
+        const { error: profileError } = await supabaseAdmin
+            .from('profiles')
+            .update({ role })
+            .eq('id', userId)
+
+        if (profileError) throw profileError
+
         revalidatePath('/dashboard/users')
         return { success: true }
     } catch (error: unknown) {

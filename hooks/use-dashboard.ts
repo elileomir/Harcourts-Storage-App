@@ -44,7 +44,7 @@ export interface DashboardFilters {
 
 export function useDashboard(filters: DashboardFilters = {}) {
     const supabase = createClient()
-    const { getCostPerCredit } = usePlatformSettings()
+    const { getCostPerCredit, getRevenueCommissionRate } = usePlatformSettings()
 
     const { data, isLoading, error } = useQuery({
         queryKey: ['dashboard', filters],
@@ -139,8 +139,9 @@ export function useDashboard(filters: DashboardFilters = {}) {
             // Calls
             const totalCalls = allCalls.length
             const successfulHandoffs = allCalls.filter((c: { handoff_success: boolean }) => c.handoff_success === true).length
+            // User requested Booking Rate to include ALL bookings regardless of status
             const handoffSuccessRate = totalCalls > 0
-                ? ((successfulHandoffs / totalCalls) * 100).toFixed(1)
+                ? ((totalBookings / totalCalls) * 100).toFixed(1)
                 : '0.0'
 
             // ElevenLabs Credits (NOT dollars)
@@ -168,9 +169,16 @@ export function useDashboard(filters: DashboardFilters = {}) {
 
             // Revenue Calculation from Active Bookings
             const activeBookings = bookings.filter((b: BookingWithUnit) => b.status === 'Active')
+            const commissionRate = getRevenueCommissionRate() || 0.10
+
             const totalMonthlyRevenue = activeBookings.reduce((sum: number, booking: BookingWithUnit) => {
-                const price = parseMonthlyPrice(booking.storage_units?.price)
-                return sum + price
+                // Use the actual monthly rent from the booking if available (agreed price), 
+                // otherwise fall back to the unit's list price
+                const price = booking.monthly_rent
+                    ? Number(booking.monthly_rent)
+                    : parseMonthlyPrice(booking.storage_units?.price)
+                // Apply commission rate (e.g., 10% of monthly rent)
+                return sum + (price * commissionRate)
             }, 0)
 
             // Average Booking Value
@@ -192,7 +200,7 @@ export function useDashboard(filters: DashboardFilters = {}) {
 
             // Call Efficiency (bookings per 1000 credits)
             const callEfficiency = totalCredits > 0
-                ? ((approvedBookings / totalCredits) * 1000).toFixed(2)
+                ? ((totalBookings / totalCredits) * 1000).toFixed(2)
                 : '0.00'
 
             // --- Conversion Funnel Metrics ---
@@ -210,21 +218,6 @@ export function useDashboard(filters: DashboardFilters = {}) {
                 ? ((successfulHandoffs / highQualityLeads) * 100).toFixed(1)
                 : '0.0'
 
-            // Revenue by Facility
-            const revenueByFacility = facilities.map(facility => {
-                const facilityActiveBookings = activeBookings.filter((b: BookingWithUnit) =>
-                    b.storage_units?.facility === facility
-                )
-                const revenue = facilityActiveBookings.reduce((sum: number, booking: BookingWithUnit) => {
-                    return sum + parseMonthlyPrice(booking.storage_units?.price)
-                }, 0)
-
-                return {
-                    facility,
-                    revenue,
-                    bookingCount: facilityActiveBookings.length
-                }
-            }).filter(f => f.revenue > 0) // Only include facilities with revenue
 
             // --- Performance Trends ---
 
@@ -405,10 +398,27 @@ export function useDashboard(filters: DashboardFilters = {}) {
 
                 return {
                     date: day.date,
-                    llmCredits,
                     voiceCredits
                 }
             })
+
+            // 10. Revenue by Facility
+            const revenueByFacility = activeBookings.reduce((acc: { name: string, value: number }[], booking: BookingWithUnit) => {
+                const facility = booking.storage_units?.facility || 'Unknown'
+                const price = booking.monthly_rent
+                    ? Number(booking.monthly_rent)
+                    : parseMonthlyPrice(booking.storage_units?.price)
+
+                const existing = acc.find((item) => item.name === facility)
+                if (existing) {
+                    existing.value += price
+                } else {
+                    acc.push({ name: facility, value: price })
+                }
+                return acc
+            }, [])
+
+
 
             return {
                 facilities,
@@ -421,8 +431,10 @@ export function useDashboard(filters: DashboardFilters = {}) {
                     pendingBookings,
                     approvedBookings,
                     totalCalls,
+                    successfulHandoffs, // Export raw count
                     handoffSuccessRate,
                     avgCsat,
+                    csatCount, // Export raw count
                     totalCredits,
                     totalLLMCredits,
                     totalCallCredits,

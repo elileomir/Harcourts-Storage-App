@@ -102,24 +102,45 @@ export default function DashboardPage() {
                         </Select>
                     </div>
                 </div>
-
-                {/* KPI Cards */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-6">
                     <Card sash>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Calls</CardTitle>
+                            <CardTitle className="text-sm font-medium flex items-center gap-1">
+                                Total Interactions
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <Info className="h-3 w-3 text-muted-foreground" />
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                        <p className="text-xs">Total inbound voice calls and chat conversations processed by the AI agent.</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </CardTitle>
                             <Phone className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
+                        </CardHeader >
                         <CardContent className="min-h-[60px] flex flex-col justify-center">
                             <div className="text-2xl font-bold">{metrics?.totalCalls || 0}</div>
                             <p className="text-xs text-muted-foreground">
                                 {filters.dateRange === 'all' ? 'All time' : 'In selected period'}
                             </p>
                         </CardContent>
-                    </Card>
+                    </Card >
                     <Card sash>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Booking Rate</CardTitle>
+                            <CardTitle className="text-sm font-medium flex items-center gap-1">
+                                Booking Rate
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <Info className="h-3 w-3 text-muted-foreground" />
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                        <p className="text-xs">Percentage of interactions resulting in a booking (Pending or Approved).</p>
+                                        <p className="text-xs mt-1 text-muted-foreground">
+                                            Formula: ({data?.metrics.totalBookings || 0} Bookings / {data?.metrics.totalCalls || 0} Interactions) × 100%
+                                        </p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </CardTitle>
                             <TrendingUp className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent className="min-h-[60px] flex flex-col justify-center">
@@ -131,7 +152,20 @@ export default function DashboardPage() {
                     </Card>
                     <Card sash>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Average CSAT</CardTitle>
+                            <CardTitle className="text-sm font-medium flex items-center gap-1">
+                                Average CSAT
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <Info className="h-3 w-3 text-muted-foreground" />
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                        <p className="text-xs">Average Customer Satisfaction Score (1-5) from post-call surveys.</p>
+                                        <p className="text-xs mt-1 text-muted-foreground">
+                                            Based on {data?.metrics.csatCount ?? 0} surveys collected.
+                                        </p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </CardTitle>
                             <Star className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent className="min-h-[60px] flex flex-col justify-center">
@@ -143,7 +177,20 @@ export default function DashboardPage() {
                     </Card>
                     <Card sash>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Occupancy</CardTitle>
+                            <CardTitle className="text-sm font-medium flex items-center gap-1">
+                                Occupancy
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <Info className="h-3 w-3 text-muted-foreground" />
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                        <p className="text-xs">Percentage of total units currently occupied.</p>
+                                        <p className="text-xs mt-1 text-muted-foreground">
+                                            Formula: ({data?.metrics.occupiedUnits || 0} Occupied / {data?.metrics.totalUnits || 0} Total) × 100%
+                                        </p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </CardTitle>
                             <Users className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent className="min-h-[60px] flex flex-col justify-center">
@@ -184,7 +231,20 @@ export default function DashboardPage() {
                     </Card>
                     <Card sash>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Avg Credits/Call</CardTitle>
+                            <CardTitle className="text-sm font-medium flex items-center gap-1">
+                                Avg Credits/Call
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <Info className="h-3 w-3 text-muted-foreground" />
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                        <p className="text-xs">Average ElevenLabs credits consumed per conversation.</p>
+                                        <p className="text-xs mt-1 text-muted-foreground">
+                                            Formula: {data?.metrics.totalCredits?.toLocaleString() || 0} Credits / {data?.metrics.totalCalls || 0} Interactions
+                                        </p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </CardTitle>
                             <DollarSign className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent className="min-h-[60px] flex flex-col justify-center">
@@ -194,11 +254,11 @@ export default function DashboardPage() {
                             </p>
                         </CardContent>
                     </Card>
-                </div>
+                </div >
 
                 {/* Business Performance KPI Cards */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
-                    <Card>
+                < div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-6" >
+                    <Card sash>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium flex items-center gap-1">
                                 Cost per Booking
@@ -207,7 +267,10 @@ export default function DashboardPage() {
                                         <Info className="h-3 w-3 text-muted-foreground" />
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs">
-                                        <p className="text-xs">ElevenLabs credits spent per approved booking. Lower is better. Calculated as Total Credits / Approved Bookings.</p>
+                                        <p className="text-xs">ElevenLabs credits spent per approved booking. Lower is better.</p>
+                                        <p className="text-xs mt-1 text-muted-foreground">
+                                            Formula: {data?.metrics.totalCredits?.toLocaleString() || 0} Credits / {data?.metrics.approvedBookings || 0} Approved
+                                        </p>
                                     </TooltipContent>
                                 </Tooltip>
                             </CardTitle>
@@ -220,7 +283,7 @@ export default function DashboardPage() {
                             </p>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card sash>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium flex items-center gap-1">
                                 Monthly Revenue
@@ -229,7 +292,10 @@ export default function DashboardPage() {
                                         <Info className="h-3 w-3 text-muted-foreground" />
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs">
-                                        <p className="text-xs">Total monthly recurring revenue from all Active bookings. Calculated from unit pricing.</p>
+                                        <p className="text-xs">Monthly commission revenue from all Active bookings (10% of monthly rent).</p>
+                                        <p className="text-xs mt-1 text-muted-foreground">
+                                            Commission from {data?.metrics.activeBookingsCount || 0} active leases
+                                        </p>
                                     </TooltipContent>
                                 </Tooltip>
                             </CardTitle>
@@ -242,7 +308,7 @@ export default function DashboardPage() {
                             </p>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card sash>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium flex items-center gap-1">
                                 ROI
@@ -251,7 +317,10 @@ export default function DashboardPage() {
                                         <Info className="h-3 w-3 text-muted-foreground" />
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs">
-                                        <p className="text-xs">Return on Investment: ((Revenue - Platform Cost) / Platform Cost) × 100%. Shows how efficiently the AI platform generates revenue.</p>
+                                        <p className="text-xs">Return on Investment: Commission revenue vs platform cost.</p>
+                                        <p className="text-xs mt-1 text-muted-foreground">
+                                            Formula: ((${data?.metrics.totalMonthlyRevenue?.toLocaleString() || 0} Commission - ${data?.metrics.estimatedCreditCost?.toFixed(2) || 0} Cost) / ${data?.metrics.estimatedCreditCost?.toFixed(2) || 0}) × 100%
+                                        </p>
                                     </TooltipContent>
                                 </Tooltip>
                             </CardTitle>
@@ -264,7 +333,7 @@ export default function DashboardPage() {
                             </p>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card sash>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium flex items-center gap-1">
                                 Lead Quality
@@ -273,7 +342,10 @@ export default function DashboardPage() {
                                         <Info className="h-3 w-3 text-muted-foreground" />
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs">
-                                        <p className="text-xs">Percentage of calls rated as &quot;High&quot; quality by AI. High quality leads show strong intent to rent.</p>
+                                        <p className="text-xs">Percentage of calls rated as &quot;High&quot; quality by AI.</p>
+                                        <p className="text-xs mt-1 text-muted-foreground">
+                                            Formula: ({data?.metrics.highQualityLeads || 0} High Quality / {data?.metrics.totalCalls || 0} Total) × 100%
+                                        </p>
                                     </TooltipContent>
                                 </Tooltip>
                             </CardTitle>
@@ -286,7 +358,7 @@ export default function DashboardPage() {
                             </p>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card sash>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium flex items-center gap-1">
                                 Call Efficiency
@@ -295,7 +367,10 @@ export default function DashboardPage() {
                                         <Info className="h-3 w-3 text-muted-foreground" />
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs">
-                                        <p className="text-xs">Number of bookings generated per 1,000 credits spent. Higher is better.</p>
+                                        <p className="text-xs">Number of bookings generated per 1,000 credits spent.</p>
+                                        <p className="text-xs mt-1 text-muted-foreground">
+                                            Formula: ({data?.metrics.totalBookings || 0} Bookings / {data?.metrics.totalCredits?.toLocaleString() || 0} Credits) × 1000
+                                        </p>
                                     </TooltipContent>
                                 </Tooltip>
                             </CardTitle>
@@ -308,9 +383,22 @@ export default function DashboardPage() {
                             </p>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card sash>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Active Leases</CardTitle>
+                            <CardTitle className="text-sm font-medium flex items-center gap-1">
+                                Active Leases
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <Info className="h-3 w-3 text-muted-foreground" />
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                        <p className="text-xs">Total number of currently active bookings generating revenue.</p>
+                                        <p className="text-xs mt-1 text-muted-foreground">
+                                            Currently {data?.metrics.activeBookingsCount || 0} active leases
+                                        </p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </CardTitle>
                             <Users className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent className="min-h-[60px] flex flex-col justify-center">
@@ -320,80 +408,80 @@ export default function DashboardPage() {
                             </p>
                         </CardContent>
                     </Card>
-                </div>
+                </div >
 
                 {/* Main Charts Section */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                < div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7" >
                     <div className="col-span-4">
                         {data?.charts?.callVolumeData && <CallVolumeChart data={data.charts.callVolumeData} />}
                     </div>
                     <div className="col-span-3">
                         {data?.charts?.unitStatusDistribution && <UnitStatusChart data={data.charts.unitStatusDistribution} />}
                     </div>
-                </div>
+                </div >
 
                 {/* ROI & Performance Analytics */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                < div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7" >
                     <div className="col-span-4">
                         {data?.charts?.roiTrendData && <ROITrendChart data={data.charts.roiTrendData} />}
                     </div>
                     <div className="col-span-3">
                         {data?.charts?.revenueByFacility && <RevenueByFacilityChart data={data.charts.revenueByFacility} />}
                     </div>
-                </div>
+                </div >
 
                 {/* Conversion & Lead Quality Analysis */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                < div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" >
                     <div className="col-span-2">
                         {data?.charts?.conversionFunnelData && <ConversionFunnelChart data={data.charts.conversionFunnelData} />}
                     </div>
                     <div className="col-span-2">
                         {data?.charts?.leadQualityPerformanceData && <LeadQualityPerformanceChart data={data.charts.leadQualityPerformanceData} />}
                     </div>
-                </div>
+                </div >
 
                 {/* Cost Analysis */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                < div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" >
                     <div className="col-span-2">
                         {data?.charts?.creditBreakdownData && <CreditBreakdownChart data={data.charts.creditBreakdownData} />}
                     </div>
                     <div className="col-span-2">
                         {data?.charts?.durationTrendData && <DurationTrendChart data={data.charts.durationTrendData} />}
                     </div>
-                </div>
+                </div >
 
                 {/* Secondary Charts - CSAT & Lead Quality */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                < div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" >
                     <div className="col-span-2">
                         {data?.charts?.csatChartData && <CsatChart data={data.charts.csatChartData} />}
                     </div>
                     <div className="col-span-2">
                         {data?.charts?.leadQualityData && <LeadQualityChart data={data.charts.leadQualityData} />}
                     </div>
-                </div>
+                </div >
 
                 {/* Facility-Level Insights */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                < div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" >
                     <div className="col-span-2">
                         {data?.charts?.facilityBreakdown && <FacilityBreakdownChart data={data.charts.facilityBreakdown} />}
                     </div>
                     <div className="col-span-2">
                         {data?.charts?.facilityBreakdown && <OccupancyByFacilityChart data={data.charts.facilityBreakdown} />}
                     </div>
-                </div>
+                </div >
 
                 {/* Additional Analytics */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                < div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" >
                     <div className="col-span-2">
                         {data?.charts?.durationTrendData && <DurationTrendChart data={data.charts.durationTrendData} />}
                     </div>
                     <div className="col-span-2">
                         {data?.charts?.competitorData && <CompetitorMentions data={data.charts.competitorData} />}
                     </div>
-                </div>
+                </div >
 
                 {/* Recent Activity Feed */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                < div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7" >
                     <Card className="col-span-7">
                         <CardHeader>
                             <CardTitle>Recent Activity</CardTitle>
@@ -426,14 +514,14 @@ export default function DashboardPage() {
                             </div>
                         </CardContent>
                     </Card>
-                </div>
+                </div >
 
                 <CallDetailsDrawer
                     call={selectedCall}
                     open={drawerOpen}
                     onOpenChange={setDrawerOpen}
                 />
-            </div>
-        </TooltipProvider>
+            </div >
+        </TooltipProvider >
     )
 }

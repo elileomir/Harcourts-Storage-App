@@ -1,5 +1,6 @@
 import { listUsers } from '@/app/actions/auth'
 import { UsersTable } from '@/components/features/users/users-table'
+import { InviteUserDialog } from '@/components/features/users/invite-user-dialog'
 import { AlertCircle } from 'lucide-react'
 
 export default async function UsersPage() {
@@ -7,9 +8,12 @@ export default async function UsersPage() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold text-primary">User Management</h1>
-                <p className="text-muted-foreground">Manage admin access to the dashboard.</p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold text-primary">User Management</h1>
+                    <p className="text-muted-foreground">Manage admin access to the dashboard.</p>
+                </div>
+                <InviteUserDialog />
             </div>
 
             {!process.env.SUPABASE_SERVICE_ROLE_KEY && (

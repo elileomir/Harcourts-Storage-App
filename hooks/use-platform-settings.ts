@@ -65,6 +65,16 @@ export function usePlatformSettings() {
         return cost / credits // e.g., $20 / 100000 = $0.0002 per credit
     }
 
+    const getRevenueCommissionRate = (): number => {
+        const value = getSetting('revenue_commission_rate')
+        return value ? parseFloat(value) : 0.10 // Default 10% commission
+    }
+
+    const getAppDomain = (): string => {
+        const value = getSetting('app_domain')
+        return value || 'https://harcourtsstorageapp.netlify.app' // Default domain
+    }
+
     return {
         settings,
         isLoading,
@@ -74,5 +84,7 @@ export function usePlatformSettings() {
         getMonthlyCost,
         getMonthlyCredits,
         getCostPerCredit,
+        getRevenueCommissionRate,
+        getAppDomain,
     }
 }
