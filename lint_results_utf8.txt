@@ -1,0 +1,130 @@
+﻿
+> temp_app@0.1.0 lint
+> eslint
+
+
+C:\Users\elija\Downloads\harcourts storage app\app\(auth)\login\page.tsx
+  53:26  warning  '_err' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\elija\Downloads\harcourts storage app\components\features\bookings\booking-dialog.tsx
+    3:20  warning  'useEffect' is defined but never used     @typescript-eslint/no-unused-vars
+  140:52  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\elija\Downloads\harcourts storage app\components\features\bookings\bookings-table.tsx
+   63:22  error  'Input' is not defined          react/jsx-no-undef
+   70:18  error  'Select' is not defined         react/jsx-no-undef
+   71:22  error  'SelectTrigger' is not defined  react/jsx-no-undef
+   74:30  error  'SelectValue' is not defined    react/jsx-no-undef
+   77:22  error  'SelectContent' is not defined  react/jsx-no-undef
+   78:26  error  'SelectItem' is not defined     react/jsx-no-undef
+   79:26  error  'SelectItem' is not defined     react/jsx-no-undef
+   80:26  error  'SelectItem' is not defined     react/jsx-no-undef
+   81:26  error  'SelectItem' is not defined     react/jsx-no-undef
+   82:26  error  'SelectItem' is not defined     react/jsx-no-undef
+   83:26  error  'SelectItem' is not defined     react/jsx-no-undef
+   89:18  error  'Table' is not defined          react/jsx-no-undef
+   90:22  error  'TableHeader' is not defined    react/jsx-no-undef
+   91:26  error  'TableRow' is not defined       react/jsx-no-undef
+   92:30  error  'TableHead' is not defined      react/jsx-no-undef
+   93:30  error  'TableHead' is not defined      react/jsx-no-undef
+   94:30  error  'TableHead' is not defined      react/jsx-no-undef
+   95:30  error  'TableHead' is not defined      react/jsx-no-undef
+   96:30  error  'TableHead' is not defined      react/jsx-no-undef
+   99:22  error  'TableBody' is not defined      react/jsx-no-undef
+  101:30  error  'TableRow' is not defined       react/jsx-no-undef
+  102:34  error  'TableCell' is not defined      react/jsx-no-undef
+  108:34  error  'TableRow' is not defined       react/jsx-no-undef
+  113:38  error  'TableCell' is not defined      react/jsx-no-undef
+  126:38  error  'TableCell' is not defined      react/jsx-no-undef
+  138:38  error  'TableCell' is not defined      react/jsx-no-undef
+  139:42  error  'Select' is not defined         react/jsx-no-undef
+  143:46  error  'SelectTrigger' is not defined  react/jsx-no-undef
+  146:50  error  'SelectValue' is not defined    react/jsx-no-undef
+  148:46  error  'SelectContent' is not defined  react/jsx-no-undef
+  149:50  error  'SelectItem' is not defined     react/jsx-no-undef
+  150:50  error  'SelectItem' is not defined     react/jsx-no-undef
+  151:50  error  'SelectItem' is not defined     react/jsx-no-undef
+  152:50  error  'SelectItem' is not defined     react/jsx-no-undef
+  153:50  error  'SelectItem' is not defined     react/jsx-no-undef
+  154:50  error  'SelectItem' is not defined     react/jsx-no-undef
+  158:38  error  'TableCell' is not defined      react/jsx-no-undef
+  171:38  error  'TableCell' is not defined      react/jsx-no-undef
+  174:50  error  'Button' is not defined         react/jsx-no-undef
+
+C:\Users\elija\Downloads\harcourts storage app\components\features\dashboard\analytics-charts.tsx
+   59:66   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  107:60   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  151:67   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  153:91   warning  'index' is defined but never used         @typescript-eslint/no-unused-vars
+  153:100  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  204:66   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  251:73   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  293:75   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  337:69   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  381:69   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  443:64   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  494:73   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  542:72   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  586:93   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  596:78   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  638:52   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  654:71   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\elija\Downloads\harcourts storage app\components\features\units\unit-dialog.tsx
+    3:20  warning  'useEffect' is defined but never used     @typescript-eslint/no-unused-vars
+  120:52  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\elija\Downloads\harcourts storage app\components\features\units\units-table.tsx
+   65:22  error  'Search' is not defined          react/jsx-no-undef
+   66:22  error  'Input' is not defined           react/jsx-no-undef
+   74:22  error  'Select' is not defined          react/jsx-no-undef
+   75:26  error  'SelectTrigger' is not defined   react/jsx-no-undef
+   77:34  error  'Filter' is not defined          react/jsx-no-undef
+   78:34  error  'SelectValue' is not defined     react/jsx-no-undef
+   81:26  error  'SelectContent' is not defined   react/jsx-no-undef
+   82:30  error  'SelectItem' is not defined      react/jsx-no-undef
+   84:34  error  'SelectItem' is not defined      react/jsx-no-undef
+   88:22  error  'Select' is not defined          react/jsx-no-undef
+   89:26  error  'SelectTrigger' is not defined   react/jsx-no-undef
+   91:34  error  'Filter' is not defined          react/jsx-no-undef
+   92:34  error  'SelectValue' is not defined     react/jsx-no-undef
+   95:26  error  'SelectContent' is not defined   react/jsx-no-undef
+   96:30  error  'SelectItem' is not defined      react/jsx-no-undef
+   97:30  error  'SelectItem' is not defined      react/jsx-no-undef
+   98:30  error  'SelectItem' is not defined      react/jsx-no-undef
+   99:30  error  'SelectItem' is not defined      react/jsx-no-undef
+  106:18  error  'Table' is not defined           react/jsx-no-undef
+  107:22  error  'TableHeader' is not defined     react/jsx-no-undef
+  108:26  error  'TableRow' is not defined        react/jsx-no-undef
+  109:30  error  'TableHead' is not defined       react/jsx-no-undef
+  110:30  error  'TableHead' is not defined       react/jsx-no-undef
+  111:30  error  'TableHead' is not defined       react/jsx-no-undef
+  112:30  error  'TableHead' is not defined       react/jsx-no-undef
+  113:30  error  'TableHead' is not defined       react/jsx-no-undef
+  114:30  error  'TableHead' is not defined       react/jsx-no-undef
+  117:22  error  'TableBody' is not defined       react/jsx-no-undef
+  119:30  error  'TableRow' is not defined        react/jsx-no-undef
+  120:34  error  'TableCell' is not defined       react/jsx-no-undef
+  126:34  error  'TableRow' is not defined        react/jsx-no-undef
+  131:38  error  'TableCell' is not defined       react/jsx-no-undef
+  132:38  error  'TableCell' is not defined       react/jsx-no-undef
+  133:38  error  'TableCell' is not defined       react/jsx-no-undef
+  139:38  error  'TableCell' is not defined       react/jsx-no-undef
+  145:38  error  'TableCell' is not defined       react/jsx-no-undef
+  146:42  error  'Select' is not defined          react/jsx-no-undef
+  150:46  error  'SelectTrigger' is not defined   react/jsx-no-undef
+  153:50  error  'SelectValue' is not defined     react/jsx-no-undef
+  155:46  error  'SelectContent' is not defined   react/jsx-no-undef
+  156:50  error  'SelectItem' is not defined      react/jsx-no-undef
+  157:50  error  'SelectItem' is not defined      react/jsx-no-undef
+  158:50  error  'SelectItem' is not defined      react/jsx-no-undef
+  162:38  error  'TableCell' is not defined       react/jsx-no-undef
+  164:46  error  'Button' is not defined          react/jsx-no-undef
+  170:50  error  'List' is not defined            react/jsx-no-undef
+  174:54  error  'Button' is not defined          react/jsx-no-undef
+  175:58  error  'MoreHorizontal' is not defined  react/jsx-no-undef
+  181:58  error  'Edit' is not defined            react/jsx-no-undef
+  193:58  error  'Trash2' is not defined          react/jsx-no-undef
+
+Γ£û 111 problems (107 errors, 4 warnings)
+

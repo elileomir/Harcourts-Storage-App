@@ -1,0 +1,20 @@
+﻿
+> temp_app@0.1.0 lint
+> eslint
+
+
+C:\Users\elija\Downloads\harcourts storage app\app\(auth)\login\page.tsx
+  52:26  warning  '_err' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\elija\Downloads\harcourts storage app\components\features\dashboard\analytics-charts.tsx
+  14:5   warning  'LineChart' is defined but never used                 @typescript-eslint/no-unused-vars
+  17:5   warning  'PieChart' is defined but never used                  @typescript-eslint/no-unused-vars
+  18:5   warning  'Pie' is defined but never used                       @typescript-eslint/no-unused-vars
+  21:5   warning  'LabelList' is defined but never used                 @typescript-eslint/no-unused-vars
+  23:10  warning  'formatPrice' is defined but never used               @typescript-eslint/no-unused-vars
+  36:7   warning  'FACILITY_COLORS' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  37:7   warning  'FUNNEL_COLORS' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  52:11  warning  'TooltipProps' is defined but never used              @typescript-eslint/no-unused-vars
+
+Γ£û 9 problems (0 errors, 9 warnings)
+

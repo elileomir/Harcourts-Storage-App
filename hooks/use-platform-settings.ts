@@ -1,0 +1,78 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { createClient } from '@/lib/supabase/client'
+
+export interface PlatformSetting {
+    id: number
+    setting_key: string
+    setting_value: string
+    description?: string
+    updated_at?: string
+}
+
+export function usePlatformSettings() {
+    const supabase = createClient()
+    const queryClient = useQueryClient()
+
+    const { data: settings, isLoading, error } = useQuery({
+        queryKey: ['platform-settings'],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('platform_settings')
+                .select('*')
+                .order('setting_key')
+
+            if (error) throw error
+            return data as PlatformSetting[]
+        },
+    })
+
+    const updateSetting = useMutation({
+        mutationFn: async ({ key, value }: { key: string, value: string }) => {
+            const { data, error } = await supabase
+                .from('platform_settings')
+                .update({ setting_value: value })
+                .eq('setting_key', key)
+                .select()
+                .single()
+
+            if (error) throw error
+            return data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['platform-settings'] })
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+        },
+    })
+
+    // Helper functions to get specific settings
+    const getSetting = (key: string): string | undefined => {
+        return settings?.find(s => s.setting_key === key)?.setting_value
+    }
+
+    const getMonthlyCost = (): number => {
+        const value = getSetting('platform_monthly_cost')
+        return value ? parseFloat(value) : 20 // Default $20
+    }
+
+    const getMonthlyCredits = (): number => {
+        const value = getSetting('platform_monthly_credits')
+        return value ? parseInt(value) : 100000 // Default 100k
+    }
+
+    const getCostPerCredit = (): number => {
+        const cost = getMonthlyCost()
+        const credits = getMonthlyCredits()
+        return cost / credits // e.g., $20 / 100000 = $0.0002 per credit
+    }
+
+    return {
+        settings,
+        isLoading,
+        error,
+        updateSetting,
+        getSetting,
+        getMonthlyCost,
+        getMonthlyCredits,
+        getCostPerCredit,
+    }
+}
