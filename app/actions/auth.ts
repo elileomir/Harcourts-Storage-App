@@ -40,11 +40,22 @@ export async function inviteUser(email: string, role: string = 'user') {
         })
         if (error) throw error
 
-        // Set user role in user_metadata
+        // Create profile with selected role
         if (data.user) {
-            await supabaseAdmin.auth.admin.updateUserById(data.user.id, {
-                user_metadata: { role }
-            })
+            // Upsert profile with role
+            const { error: profileError } = await supabaseAdmin
+                .from('profiles')
+                .upsert({
+                    id: data.user.id,
+                    role: role,
+                    updated_at: new Date().toISOString()
+                }, {
+                    onConflict: 'id'
+                })
+
+            if (profileError) {
+                console.error('Error creating profile:', profileError)
+            }
         }
 
         revalidatePath('/dashboard/users')

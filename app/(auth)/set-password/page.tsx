@@ -16,17 +16,42 @@ export default function SetPasswordPage() {
     const [error, setError] = useState('')
     const supabase = createClient()
 
-    // Verify user has an active session
+    // Verify user has an active session (with retry for invitation flow)
     useEffect(() => {
+        let retries = 5
+        let timeoutId: NodeJS.Timeout
+
         const checkSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession()
-            if (!session) {
-                setError('Auth session missing!')
-                // Redirect back to login after a moment
-                setTimeout(() => router.push('/login'), 2000)
+            try {
+                const { data: { session } } = await supabase.auth.getSession()
+
+                if (session) {
+                    // Session found, clear any errors
+                    setError('')
+                    return
+                }
+
+                // No session yet, retry if we have attempts left
+                retries--
+                if (retries > 0) {
+                    timeoutId = setTimeout(checkSession, 1000) // Retry after 1 second
+                } else {
+                    // Out of retries, show error and redirect
+                    setError('Session expired or invalid. Redirecting to login...')
+                    setTimeout(() => router.push('/login'), 2000)
+                }
+            } catch (err) {
+                console.error('Error checking session:', err)
+                setError('Failed to verify session')
             }
         }
-        checkSession()
+
+        // Start checking after a brief delay to allow callback to process
+        timeoutId = setTimeout(checkSession, 500)
+
+        return () => {
+            if (timeoutId) clearTimeout(timeoutId)
+        }
     }, [router, supabase])
 
     const handleSubmit = async (e: React.FormEvent) => {
