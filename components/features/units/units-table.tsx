@@ -156,6 +156,7 @@ export function UnitsTable({ units, onStatusUpdate, onEdit, onDelete }: UnitsTab
                                         >
                                             <SelectTrigger
                                                 className={`h-7 w-auto min-w-[110px] gap-1 rounded-[4px] border px-2.5 py-1 text-xs font-semibold shadow-none focus:ring-0 ${getStatusColor(unit.status)}`}
+                                                style={{ backgroundColor: unit.status === 'Available' ? '#2C9143' : unit.status === 'Submitted' ? '#C4642F' : unit.status === 'Unavailable' ? 'hsl(var(--destructive))' : undefined }}
                                             >
                                                 <SelectValue />
                                             </SelectTrigger>

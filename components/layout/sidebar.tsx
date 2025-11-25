@@ -20,8 +20,8 @@ const navigation = [
 
 export function Sidebar() {
     const pathname = usePathname()
-    const { signOut, user } = useAuth()
-    const isAdmin = user?.user_metadata?.role === 'admin'
+    const { signOut, role } = useAuth()
+    const isAdmin = role === 'admin'
 
     return (
         <div className="flex h-full w-64 flex-col border-r bg-card">
