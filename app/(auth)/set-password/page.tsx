@@ -37,7 +37,13 @@ export default function SetPasswordPage() {
                         })
 
                         if (error) {
-                            setError(`Failed to establish session: ${error.message}`)
+                            // If setSession fails, check if we actually have a session anyway (e.g. token reused but session persisted)
+                            const { data: { session } } = await supabase.auth.getSession()
+                            if (session) {
+                                setError('')
+                            } else {
+                                setError(`Failed to establish session: ${error.message}`)
+                            }
                         } else {
                             // Hash will be cleared when navigating to dashboard
                             setError('')

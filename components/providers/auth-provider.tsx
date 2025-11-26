@@ -87,7 +87,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
 
                 if (event === 'SIGNED_OUT') {
-                    router.push('/login')
+                    // Don't redirect if on set-password page (invite flow)
+                    if (window.location.pathname !== '/set-password') {
+                        router.push('/login')
+                        router.refresh()
+                    }
                 }
             }
         )
@@ -98,8 +102,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [router, supabase])
 
     const signOut = async () => {
-        await supabase.auth.signOut()
-        router.push('/login')
+        try {
+            await supabase.auth.signOut()
+        } catch (error) {
+            console.error('Error signing out:', error)
+        } finally {
+            router.push('/login')
+            router.refresh() // Force refresh to clear any server component state
+        }
     }
 
     return (

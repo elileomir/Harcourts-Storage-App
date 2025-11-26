@@ -7,6 +7,8 @@ import { LayoutDashboard, Box, Users, Phone, BookOpen, LogOut, Settings } from '
 import { useAuth } from '@/components/providers/auth-provider'
 import { Button } from '@/components/ui/button'
 import Image from 'next/image'
+import { useState } from 'react'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -22,6 +24,7 @@ export function Sidebar() {
     const pathname = usePathname()
     const { signOut, role } = useAuth()
     const isAdmin = role === 'admin'
+    const [showSignOutDialog, setShowSignOutDialog] = useState(false)
 
     return (
         <div className="flex h-full w-64 flex-col border-r bg-card">
@@ -76,12 +79,22 @@ export function Sidebar() {
                 <Button
                     variant="ghost"
                     className="w-full justify-start text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                    onClick={() => signOut()}
+                    onClick={() => setShowSignOutDialog(true)}
                 >
                     <LogOut className="mr-3 h-5 w-5" />
                     Sign Out
                 </Button>
             </div>
+
+            <ConfirmationDialog
+                open={showSignOutDialog}
+                onOpenChange={setShowSignOutDialog}
+                onConfirm={() => signOut()}
+                title="Sign Out"
+                description="Are you sure you want to sign out?"
+                confirmText="Sign Out"
+                variant="danger"
+            />
         </div>
     )
 }
