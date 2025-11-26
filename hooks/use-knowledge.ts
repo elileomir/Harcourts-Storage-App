@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 
@@ -23,6 +24,23 @@ export function useKnowledge() {
             return data as KnowledgeItem[]
         },
     })
+
+    useEffect(() => {
+        const channel = supabase
+            .channel('knowledge-realtime')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'knowledge_base' },
+                () => {
+                    queryClient.invalidateQueries({ queryKey: ['knowledge'] })
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [supabase, queryClient])
 
     const addKnowledge = useMutation({
         mutationFn: async (newItem: Omit<KnowledgeItem, 'id'>) => {

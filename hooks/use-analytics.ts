@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 
 export interface ToolResult {
@@ -53,6 +54,7 @@ export type CallLog = {
 
 export function useAnalytics() {
     const supabase = createClient()
+    const queryClient = useQueryClient()
 
     const { data: calls, isLoading, error } = useQuery({
         queryKey: ['analytics'],
@@ -66,6 +68,23 @@ export function useAnalytics() {
             return data as CallLog[]
         },
     })
+
+    useEffect(() => {
+        const channel = supabase
+            .channel('analytics-realtime')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'call_analytics' },
+                () => {
+                    queryClient.invalidateQueries({ queryKey: ['analytics'] })
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [supabase, queryClient])
 
     // Calculate stats
     const totalCalls = calls?.length || 0

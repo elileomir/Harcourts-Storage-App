@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { format, subDays, parseISO, isWithinInterval, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns'
 import { parseCSAT } from '@/lib/utils/parse-csat'
@@ -44,6 +45,7 @@ export interface DashboardFilters {
 
 export function useDashboard(filters: DashboardFilters = {}) {
     const supabase = createClient()
+    const queryClient = useQueryClient()
     const { getCostPerCredit, getRevenueCommissionRate } = usePlatformSettings()
 
     const { data, isLoading, error } = useQuery({
@@ -195,8 +197,8 @@ export function useDashboard(filters: DashboardFilters = {}) {
             const creditCost = getCostPerCredit() || 0.0002 // Fallback if settings not loaded
             const estimatedCreditCost = totalCredits * creditCost
             const roi = totalMonthlyRevenue > 0
-                ? ((totalMonthlyRevenue - estimatedCreditCost) / estimatedCreditCost * 100).toFixed(1)
-                : '0.0'
+                ? Number(((totalMonthlyRevenue - estimatedCreditCost) / estimatedCreditCost * 100).toFixed(1))
+                : 0
 
             // Call Efficiency (bookings per 1000 credits)
             const callEfficiency = totalCredits > 0
@@ -452,7 +454,8 @@ export function useDashboard(filters: DashboardFilters = {}) {
                     lowQualityLeads,
                     highQualityRate,
                     highQualityConversion,
-                    activeBookingsCount: activeBookings.length
+                    activeBookingsCount: activeBookings.length,
+                    netRevenue: totalMonthlyRevenue - estimatedCreditCost
                 },
                 charts: {
                     unitStatusDistribution,
@@ -475,6 +478,25 @@ export function useDashboard(filters: DashboardFilters = {}) {
             }
         },
     })
+
+    useEffect(() => {
+        const channel = supabase
+            .channel('dashboard-realtime')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'storage_units' }, () => {
+                queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, () => {
+                queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'call_analytics' }, () => {
+                queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+            })
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [supabase, queryClient])
 
     return { data, isLoading, error }
 }

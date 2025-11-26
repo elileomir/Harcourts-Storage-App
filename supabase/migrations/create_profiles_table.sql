@@ -30,7 +30,11 @@ security definer set search_path = public
 as $$
 begin
   insert into public.profiles (id, email, role)
-  values (new.id, new.email, 'user');
+  values (
+    new.id, 
+    new.email, 
+    coalesce(new.raw_user_meta_data->>'role', 'user')
+  );
   return new;
 end;
 $$;

@@ -30,7 +30,7 @@ export async function inviteUser(email: string, role: string = 'user') {
             .single()
 
         const appDomain = settings?.setting_value || 'https://harcourtsstorageapp.netlify.app'
-        const redirectUrl = `${appDomain}/auth/callback?type=invite`
+        const redirectUrl = `${appDomain}/set-password`
 
         const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
             redirectTo: redirectUrl,

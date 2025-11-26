@@ -33,15 +33,37 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
+    // Redirect to login if not authenticated
     if (
         !user &&
         !request.nextUrl.pathname.startsWith('/login') &&
         !request.nextUrl.pathname.startsWith('/auth') &&
+        !request.nextUrl.pathname.startsWith('/set-password') &&
         request.nextUrl.pathname.startsWith('/dashboard')
     ) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
         return NextResponse.redirect(url)
+    }
+
+    // Check role for admin-only routes
+    if (user && (
+        request.nextUrl.pathname.startsWith('/dashboard/users') ||
+        request.nextUrl.pathname.startsWith('/dashboard/admin')
+    )) {
+        // Fetch user role from profiles table
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single()
+
+        if (profile?.role !== 'admin') {
+            const url = request.nextUrl.clone()
+            url.pathname = '/dashboard'
+            url.searchParams.set('error', 'unauthorized')
+            return NextResponse.redirect(url)
+        }
     }
 
     return supabaseResponse

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Trash2, Loader2 } from 'lucide-react'
 import { deleteUser, updateUserRole } from '@/app/actions/auth'
 import { toast } from 'sonner'
+import { createClient } from '@/lib/supabase/client'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -36,6 +37,49 @@ export function UsersTable({ initialUsers }: UsersTableProps) {
     const [deletingId, setDeletingId] = useState<string | null>(null)
     const [userToDelete, setUserToDelete] = useState<User | null>(null)
     const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null)
+    const supabase = createClient()
+
+    // Set up real-time subscription for profile changes
+    useEffect(() => {
+        const channel = supabase
+            .channel('profiles-changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'profiles'
+                },
+                async (payload) => {
+                    if (payload.eventType === 'INSERT') {
+                        // Fetch the full user data including email from auth
+                        const newProfile = payload.new as { id: string; role: string; created_at: string }
+                        const { data: { user } } = await supabase.auth.admin.getUserById(newProfile.id)
+                        if (user) {
+                            setUsers(prev => [...prev, {
+                                id: user.id,
+                                email: user.email,
+                                role: newProfile.role,
+                                created_at: user.created_at
+                            }])
+                        }
+                    } else if (payload.eventType === 'UPDATE') {
+                        const updated = payload.new as { id: string; role: string }
+                        setUsers(prev => prev.map(u =>
+                            u.id === updated.id ? { ...u, role: updated.role } : u
+                        ))
+                    } else if (payload.eventType === 'DELETE') {
+                        const deleted = payload.old as { id: string }
+                        setUsers(prev => prev.filter(u => u.id !== deleted.id))
+                    }
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [supabase])
 
     const handleDeleteUser = async (user: User) => {
         if (!user.id) return

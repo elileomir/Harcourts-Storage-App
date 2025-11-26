@@ -16,42 +16,49 @@ export default function SetPasswordPage() {
     const [error, setError] = useState('')
     const supabase = createClient()
 
-    // Verify user has an active session (with retry for invitation flow)
+    // Process invite hash tokens if present, otherwise verify existing session
     useEffect(() => {
-        let retries = 5
-        let timeoutId: NodeJS.Timeout
-
-        const checkSession = async () => {
+        const processInviteOrSession = async () => {
             try {
-                const { data: { session } } = await supabase.auth.getSession()
+                const hash = window.location.hash
 
-                if (session) {
-                    // Session found, clear any errors
-                    setError('')
-                    return
+                // Check if this is an invite with hash tokens
+                if (hash.includes('access_token')) {
+                    const hashParams = new URLSearchParams(hash.substring(1))
+                    const accessToken = hashParams.get('access_token')
+                    const refreshToken = hashParams.get('refresh_token')
+
+                    if (accessToken && refreshToken) {
+                        // Set session from hash tokens
+                        const { error } = await supabase.auth.setSession({
+                            access_token: accessToken,
+                            refresh_token: refreshToken
+                        })
+
+                        if (error) {
+                            setError(`Failed to establish session: ${error.message}`)
+                        } else {
+                            // Clear hash from URL
+                            window.history.replaceState(null, '', window.location.pathname)
+                            setError('')
+                        }
+                        return
+                    }
                 }
 
-                // No session yet, retry if we have attempts left
-                retries--
-                if (retries > 0) {
-                    timeoutId = setTimeout(checkSession, 1000) // Retry after 1 second
-                } else {
-                    // Out of retries, show error and redirect
-                    setError('Session expired or invalid. Redirecting to login...')
+                // No hash tokens, check for existing session
+                const { data: { session } } = await supabase.auth.getSession()
+                if (!session) {
+                    setError('No active session. Redirecting to login...')
                     setTimeout(() => router.push('/login'), 2000)
                 }
             } catch (err) {
-                console.error('Error checking session:', err)
+                console.error('Error processing invite or session:', err)
                 setError('Failed to verify session')
             }
         }
 
-        // Start checking after a brief delay to allow callback to process
-        timeoutId = setTimeout(checkSession, 500)
-
-        return () => {
-            if (timeoutId) clearTimeout(timeoutId)
-        }
+        processInviteOrSession()
     }, [router, supabase])
 
     const handleSubmit = async (e: React.FormEvent) => {

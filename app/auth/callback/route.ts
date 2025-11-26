@@ -12,10 +12,6 @@ export async function GET(request: Request) {
         const { error } = await supabase.auth.exchangeCodeForSession(code)
 
         if (!error) {
-            // Handle invite acceptance - redirect to set-password after session is established
-            if (type === 'invite') {
-                return NextResponse.redirect(new URL('/set-password', request.url))
-            }
             return NextResponse.redirect(new URL(next, request.url))
         }
     }
