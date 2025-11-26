@@ -36,6 +36,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { Button } from '@/components/ui/button'
 
 export default function DashboardPage() {
     const [filters, setFilters] = useState<DashboardFilters>({
@@ -45,7 +46,7 @@ export default function DashboardPage() {
     const [selectedCall, setSelectedCall] = useState<CallLog | null>(null)
     const [drawerOpen, setDrawerOpen] = useState(false)
 
-    const { data, isLoading } = useDashboard(filters)
+    const { data, isLoading, error } = useDashboard(filters)
     const metrics = data?.metrics
     const facilities = data?.facilities || []
 
@@ -60,6 +61,21 @@ export default function DashboardPage() {
 
     if (isLoading) {
         return <div className="p-8 flex items-center justify-center h-full">Loading dashboard...</div>
+    }
+
+    if (error) {
+        return (
+            <div className="p-8 flex flex-col items-center justify-center h-full space-y-4">
+                <div className="text-red-500 font-medium">Failed to load dashboard data</div>
+                <p className="text-sm text-muted-foreground">{error.message || 'Unknown error occurred'}</p>
+                <Button
+                    onClick={() => window.location.reload()}
+                    variant="default"
+                >
+                    Retry
+                </Button>
+            </div>
+        )
     }
 
     return (
