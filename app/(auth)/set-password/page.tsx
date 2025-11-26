@@ -38,8 +38,7 @@ export default function SetPasswordPage() {
                         if (error) {
                             setError(`Failed to establish session: ${error.message}`)
                         } else {
-                            // Clear hash from URL
-                            window.history.replaceState(null, '', window.location.pathname)
+                            // Hash will be cleared when navigating to dashboard
                             setError('')
                         }
                         return
