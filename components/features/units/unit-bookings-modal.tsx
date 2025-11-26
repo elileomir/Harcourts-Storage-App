@@ -81,8 +81,8 @@ export function UnitBookingsModal({ isOpen, onClose, unitNumber, bookings }: Uni
                         sortedBookings.map((booking) => (
                             <Card key={booking.id} className="overflow-hidden border shadow-sm hover:shadow-md transition-shadow">
                                 <CardContent className="p-4">
-                                    <div className="flex justify-between items-start">
-                                        <div className="space-y-1">
+                                    <div className="flex justify-between items-start gap-4">
+                                        <div className="space-y-1 flex-1 min-w-0">
                                             <div className="flex items-center gap-2">
                                                 <span className="font-semibold text-lg">{booking.customer_name}</span>
                                                 <Badge className={getStatusColor(booking.status)} variant="secondary">
@@ -90,20 +90,22 @@ export function UnitBookingsModal({ isOpen, onClose, unitNumber, bookings }: Uni
                                                 </Badge>
                                             </div>
 
-                                            <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm text-muted-foreground mt-2">
+                                            <div className="space-y-1 text-sm text-muted-foreground mt-2">
                                                 <div className="flex items-center gap-2">
-                                                    <User className="h-3 w-3" />
-                                                    {booking.customer_email}
+                                                    <User className="h-3 w-3 shrink-0" />
+                                                    <span className="truncate">{booking.customer_email}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <Phone className="h-3 w-3" />
-                                                    {booking.customer_mobile || 'N/A'}
+                                                    <Phone className="h-3 w-3 shrink-0" />
+                                                    <span>{booking.customer_mobile || 'N/A'}</span>
                                                 </div>
-                                                <div className="flex items-center gap-2 col-span-2 mt-1">
-                                                    <Calendar className="h-3 w-3" />
-                                                    {booking.lease_start_date ? format(new Date(booking.lease_start_date), 'MMM d, yyyy') : 'N/A'}
-                                                    {' - '}
-                                                    {booking.lease_end_date ? format(new Date(booking.lease_end_date), 'MMM d, yyyy') : 'Ongoing'}
+                                                <div className="flex items-center gap-2">
+                                                    <Calendar className="h-3 w-3 shrink-0" />
+                                                    <span>
+                                                        {booking.lease_start_date ? format(new Date(booking.lease_start_date), 'MMM d, yyyy') : 'N/A'}
+                                                        {' - '}
+                                                        {booking.lease_end_date ? format(new Date(booking.lease_end_date), 'MMM d, yyyy') : 'Ongoing'}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
@@ -111,7 +113,7 @@ export function UnitBookingsModal({ isOpen, onClose, unitNumber, bookings }: Uni
                                         <Button
                                             size="sm"
                                             variant="outline"
-                                            className="ml-4 shrink-0 gap-1"
+                                            className="shrink-0 gap-1"
                                             onClick={() => handleViewDetails(booking.id)}
                                         >
                                             View Details
