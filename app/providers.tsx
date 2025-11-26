@@ -11,25 +11,33 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     const [queryClient] = useState(() => new QueryClient({
         defaultOptions: {
             queries: {
-                retry: (failureCount, error: any) => {
+                retry: (failureCount, error: unknown) => {
                     // Don't retry on 401s or auth errors
-                    if (error?.status === 401 || error?.code === 'PGRST301' || error?.message?.includes('JWT')) return false
+                    const err = error as { status?: number; code?: string; message?: string }
+                    if (err?.status === 401 || err?.code === 'PGRST301' || err?.message?.includes('JWT')) return false
                     return failureCount < 3
                 }
             }
         },
         queryCache: new QueryCache({
-            onError: (error: any) => {
-                if (error?.status === 401 || error?.code === 'PGRST301' || error?.message?.includes('JWT')) {
-                    // Only toast if we haven't already (optional, but good for UX)
+            onError: (error: unknown) => {
+                const err = error as { status?: number; code?: string; message?: string }
+                if (err?.status === 401 || err?.code === 'PGRST301' || err?.message?.includes('JWT')) {
+                    // Don't redirect if user is on set-password page (invite flow)
+                    if (window.location.pathname === '/set-password') return
+
                     toast.error('Session expired. Please login again.')
                     router.push('/login')
                 }
             }
         }),
         mutationCache: new MutationCache({
-            onError: (error: any) => {
-                if (error?.status === 401 || error?.code === 'PGRST301' || error?.message?.includes('JWT')) {
+            onError: (error: unknown) => {
+                const err = error as { status?: number; code?: string; message?: string }
+                if (err?.status === 401 || err?.code === 'PGRST301' || err?.message?.includes('JWT')) {
+                    // Don't redirect if user is on set-password page (invite flow)
+                    if (window.location.pathname === '/set-password') return
+
                     toast.error('Session expired. Please login again.')
                     router.push('/login')
                 }
