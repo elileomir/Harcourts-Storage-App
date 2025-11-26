@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 export default function SetPasswordPage() {
     const router = useRouter()
@@ -77,16 +78,25 @@ export default function SetPasswordPage() {
         setLoading(true)
 
         try {
+            // Verify session first
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+            if (sessionError || !session) {
+                throw new Error('Session invalid. Please refresh the page and try the invite link again.')
+            }
+
             const { error } = await supabase.auth.updateUser({
                 password: password
             })
 
             if (error) throw error
 
-            router.push('/dashboard')
+            toast.success('Password set successfully! Redirecting...')
+
+            // Use window.location.href to ensure full reload and avoid router issues
+            window.location.href = '/dashboard'
         } catch (err) {
+            console.error(err)
             setError(err instanceof Error ? err.message : 'Failed to set password')
-        } finally {
             setLoading(false)
         }
     }
