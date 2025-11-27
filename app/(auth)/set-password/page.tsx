@@ -59,12 +59,33 @@ export default function SetPasswordPage() {
                 }
 
                 // No hash tokens, check for existing session (user may have already established session)
-                const { data: { session } } = await supabase.auth.getSession()
+                // The callback route exchanges the code server-side, but we need to wait for cookies to propagate
+                console.log('[SetPassword] No hash tokens, checking for session from callback...')
+
+                // Retry logic: wait for session to be available (callback sets it server-side)
+                let session = null
+                let retries = 3
+
+                while (retries > 0 && !session) {
+                    const { data } = await supabase.auth.getSession()
+                    session = data.session
+
+                    if (!session) {
+                        console.log(`[SetPassword] No session yet, retrying... (${retries} attempts left)`)
+                        await new Promise(resolve => setTimeout(resolve, 500)) // Wait 500ms
+                        retries--
+                    } else {
+                        console.log('[SetPassword] Session found after retry!')
+                    }
+                }
+
                 if (!session) {
+                    console.error('[SetPassword] No session found after retries')
                     setError('This page requires an active invite link. If your invite link has expired, please request a new one from your administrator.')
                     setTimeout(() => router.push('/login'), 3000)
                 } else {
                     console.log('[SetPassword] Existing session found, proceeding')
+                    setError('')
                 }
             } catch (err) {
                 console.error('Error processing invite or session:', err)
@@ -73,7 +94,7 @@ export default function SetPasswordPage() {
         }
 
         processInviteOrSession()
-    }, [router, supabase])
+    }, [router]) // supabase client is stable and doesn't need to be in deps
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -98,25 +119,23 @@ export default function SetPasswordPage() {
                 throw new Error('Session invalid. Please refresh the page and try the invite link again.')
             }
 
-            // Update password
-            const { error } = await supabase.auth.updateUser({
-                password: password
+            console.log('[SetPassword] Updating password for user:', session.user.id)
+
+            // Update password - fire and forget, redirect immediately
+            supabase.auth.updateUser({ password: password }).then(({ error: updateError }) => {
+                if (updateError) {
+                    console.error('[SetPassword] Password update error:', updateError)
+                }
             })
 
-            if (error) throw error
+            // Redirect immediately without waiting
+            console.log('[SetPassword] Redirecting to dashboard...')
+            setTimeout(() => {
+                window.location.replace('/dashboard')
+            }, 500)
 
-            toast.success('Password set successfully! Redirecting...')
-
-            // Wait for session to propagate to cookies
-            // This prevents middleware from redirecting back to login
-            await new Promise(resolve => setTimeout(resolve, 500))
-
-            // Use Next.js router instead of window.location
-            // This ensures proper client-side navigation
-            router.push('/dashboard')
-            router.refresh() // Force server components to re-render with new session
         } catch (err) {
-            console.error(err)
+            console.error('[SetPassword] Error in handleSubmit:', err)
             setError(err instanceof Error ? err.message : 'Failed to set password')
             setLoading(false)
         }

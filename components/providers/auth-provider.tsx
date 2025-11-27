@@ -105,9 +105,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 // Handle password update (invite flow completion)
                 if (event === 'USER_UPDATED') {
                     console.log('[AuthProvider] User updated (password set)')
-                    // Don't redirect here - let the set-password page handle it
-                    // Just ensure session is fresh
-                    router.refresh()
+                    // Don't refresh here - let the set-password page handle redirect
+                    // router.refresh() was causing page reload and interrupting redirect logic
                 }
 
                 // Handle initial sign-in or successful token refresh
@@ -131,16 +130,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return () => {
             subscription.unsubscribe()
         }
-    }, [router, supabase, queryClient])
+    }, [router, queryClient]) // supabase is stable
 
     const signOut = async () => {
         try {
+            console.log('[AuthProvider] Signing out...')
+            // Clear React Query cache before signing out
+            queryClient.clear()
+
+            // Sign out - this will trigger SIGNED_OUT event which handles redirect
             await supabase.auth.signOut()
+
+            console.log('[AuthProvider] Sign-out completed')
+            // The onAuthStateChange handler will receive SIGNED_OUT event and redirect to /login
+            // No need to manually redirect here
         } catch (error) {
-            console.error('Error signing out:', error)
-        } finally {
-            router.push('/login')
-            router.refresh() // Force refresh to clear any server component state
+            console.error('[AuthProvider] Error signing out:', error)
+            // If sign-out fails, still try to redirect to login
+            window.location.href = '/login'
         }
     }
 

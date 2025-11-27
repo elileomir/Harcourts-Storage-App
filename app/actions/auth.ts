@@ -22,18 +22,8 @@ export async function inviteUser(email: string, role: string = 'user') {
     }
 
     try {
-        // Get app domain from platform settings
-        const { data: settings } = await supabaseAdmin
-            .from('platform_settings')
-            .select('setting_value')
-            .eq('setting_key', 'app_domain')
-            .single()
-
-        const appDomain = settings?.setting_value || 'https://harcourtsstorageapp.netlify.app'
-        const redirectUrl = `${appDomain}/set-password`
-
+        // Invite user - Supabase will use hash-based tokens by default
         const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-            redirectTo: redirectUrl,
             data: {
                 role: role
             }
@@ -47,8 +37,7 @@ export async function inviteUser(email: string, role: string = 'user') {
                 .from('profiles')
                 .upsert({
                     id: data.user.id,
-                    role: role,
-                    updated_at: new Date().toISOString()
+                    role: role
                 }, {
                     onConflict: 'id'
                 })

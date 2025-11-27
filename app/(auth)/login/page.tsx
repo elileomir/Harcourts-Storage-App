@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -95,10 +96,10 @@ export default function LoginPage() {
                             />
                         </div>
                     </CardContent>
-                    <CardFooter className="mt-2">
+                    <CardFooter className="flex flex-col space-y-4 pt-4">
                         <Button
                             type="submit"
-                            className="w-full"
+                            className="w-full bg-[#003366] hover:bg-[#002244]"
                             disabled={loading}
                         >
                             {loading ? (
@@ -110,6 +111,14 @@ export default function LoginPage() {
                                 'Sign In'
                             )}
                         </Button>
+                        <div className="text-center">
+                            <Link
+                                href="/forgot-password"
+                                className="text-sm text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
+                            >
+                                Forgot your password?
+                            </Link>
+                        </div>
                     </CardFooter>
                 </form>
             </Card>

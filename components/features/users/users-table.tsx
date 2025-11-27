@@ -79,7 +79,7 @@ export function UsersTable({ initialUsers }: UsersTableProps) {
         return () => {
             supabase.removeChannel(channel)
         }
-    }, [supabase])
+    }, []) // supabase client is stable and doesn't need to be in deps
 
     const handleDeleteUser = async (user: User) => {
         if (!user.id) return
