@@ -150,9 +150,9 @@ export default function DashboardPage() {
                                         <Info className="h-3 w-3 text-muted-foreground" />
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs">
-                                        <p className="text-xs">Percentage of interactions resulting in a booking (Pending or Approved).</p>
+                                        <p className="text-xs">Percentage of interactions resulting in a booking (all statuses).</p>
                                         <p className="text-xs mt-1 text-muted-foreground">
-                                            Formula: ({data?.metrics.totalBookings || 0} Bookings / {data?.metrics.totalCalls || 0} Interactions) ├ù 100%
+                                            Formula: ({data?.metrics.totalBookings || 0} Bookings / {data?.metrics.totalCalls || 0} Interactions) × 100%
                                         </p>
                                     </TooltipContent>
                                 </Tooltip>
@@ -202,7 +202,7 @@ export default function DashboardPage() {
                                     <TooltipContent className="max-w-xs">
                                         <p className="text-xs">Percentage of total units currently occupied.</p>
                                         <p className="text-xs mt-1 text-muted-foreground">
-                                            Formula: ({data?.metrics.occupiedUnits || 0} Occupied / {data?.metrics.totalUnits || 0} Total) ├ù 100%
+                                            Formula: ({data?.metrics.occupiedUnits || 0} Occupied / {data?.metrics.totalUnits || 0} Total) × 100%
                                         </p>
                                     </TooltipContent>
                                 </Tooltip>
@@ -335,7 +335,7 @@ export default function DashboardPage() {
                                     <TooltipContent className="max-w-xs">
                                         <p className="text-xs">Return on Investment: Commission revenue vs platform cost.</p>
                                         <p className="text-xs mt-1 text-muted-foreground">
-                                            Formula: ((${data?.metrics.totalMonthlyRevenue?.toLocaleString() || 0} Commission - ${data?.metrics.estimatedCreditCost?.toFixed(2) || 0} Cost) / ${data?.metrics.estimatedCreditCost?.toFixed(2) || 0}) ├ù 100%
+                                            Formula: ((${data?.metrics.totalMonthlyRevenue?.toLocaleString() || 0} Commission - ${data?.metrics.estimatedCreditCost?.toFixed(2) || 0} Cost) / ${data?.metrics.estimatedCreditCost?.toFixed(2) || 0}) × 100%
                                         </p>
                                     </TooltipContent>
                                 </Tooltip>
@@ -360,7 +360,7 @@ export default function DashboardPage() {
                                     <TooltipContent className="max-w-xs">
                                         <p className="text-xs">Percentage of calls rated as &quot;High&quot; quality by AI.</p>
                                         <p className="text-xs mt-1 text-muted-foreground">
-                                            Formula: ({data?.metrics.highQualityLeads || 0} High Quality / {data?.metrics.totalCalls || 0} Total) ├ù 100%
+                                            Formula: ({data?.metrics.highQualityLeads || 0} High Quality / {data?.metrics.totalCalls || 0} Total) × 100%
                                         </p>
                                     </TooltipContent>
                                 </Tooltip>
@@ -385,7 +385,7 @@ export default function DashboardPage() {
                                     <TooltipContent className="max-w-xs">
                                         <p className="text-xs">Number of bookings generated per 1,000 credits spent.</p>
                                         <p className="text-xs mt-1 text-muted-foreground">
-                                            Formula: ({data?.metrics.totalBookings || 0} Bookings / {data?.metrics.totalCredits?.toLocaleString() || 0} Credits) ├ù 1000
+                                            Formula: ({data?.metrics.totalBookings || 0} Bookings / {data?.metrics.totalCredits?.toLocaleString() || 0} Credits) × 1000
                                         </p>
                                     </TooltipContent>
                                 </Tooltip>
