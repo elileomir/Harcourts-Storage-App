@@ -37,26 +37,34 @@ export default function SetPasswordPage() {
                         })
 
                         if (error) {
-                            // If setSession fails, check if we actually have a session anyway (e.g. token reused but session persisted)
-                            const { data: { session } } = await supabase.auth.getSession()
-                            if (session) {
-                                setError('')
+                            // Common error: token already used or expired
+                            if (error.message.includes('already') || error.message.includes('expired')) {
+                                // Check if we have a valid session anyway (cookies might have been set)
+                                const { data: { session } } = await supabase.auth.getSession()
+                                if (session) {
+                                    console.log('[SetPassword] Hash token already used, but session exists')
+                                    setError('')
+                                } else {
+                                    setError('This invite link has expired or has already been used. Please request a new invitation from your administrator.')
+                                }
                             } else {
                                 setError(`Failed to establish session: ${error.message}`)
                             }
                         } else {
-                            // Hash will be cleared when navigating to dashboard
+                            console.log('[SetPassword] Session established from hash tokens')
                             setError('')
                         }
                         return
                     }
                 }
 
-                // No hash tokens, check for existing session
+                // No hash tokens, check for existing session (user may have already established session)
                 const { data: { session } } = await supabase.auth.getSession()
                 if (!session) {
-                    setError('No active session. Redirecting to login...')
-                    setTimeout(() => router.push('/login'), 2000)
+                    setError('This page requires an active invite link. If your invite link has expired, please request a new one from your administrator.')
+                    setTimeout(() => router.push('/login'), 3000)
+                } else {
+                    console.log('[SetPassword] Existing session found, proceeding')
                 }
             } catch (err) {
                 console.error('Error processing invite or session:', err)
@@ -90,6 +98,7 @@ export default function SetPasswordPage() {
                 throw new Error('Session invalid. Please refresh the page and try the invite link again.')
             }
 
+            // Update password
             const { error } = await supabase.auth.updateUser({
                 password: password
             })
@@ -98,8 +107,14 @@ export default function SetPasswordPage() {
 
             toast.success('Password set successfully! Redirecting...')
 
-            // Use window.location.href to ensure full reload and avoid router issues
-            window.location.href = '/dashboard'
+            // Wait for session to propagate to cookies
+            // This prevents middleware from redirecting back to login
+            await new Promise(resolve => setTimeout(resolve, 500))
+
+            // Use Next.js router instead of window.location
+            // This ensures proper client-side navigation
+            router.push('/dashboard')
+            router.refresh() // Force server components to re-render with new session
         } catch (err) {
             console.error(err)
             setError(err instanceof Error ? err.message : 'Failed to set password')

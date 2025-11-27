@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 
 type AuthContextType = {
     user: User | null
@@ -21,6 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [role, setRole] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const router = useRouter()
+    const queryClient = useQueryClient()
     const supabase = createClient()
 
     useEffect(() => {
@@ -70,6 +72,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
+                console.log('[AuthProvider] Auth state change:', event)
+
                 setSession(session)
                 setUser(session?.user ?? null)
 
@@ -86,10 +90,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     setRole(null)
                 }
 
+                // Handle sign-out
                 if (event === 'SIGNED_OUT') {
-                    // Don't redirect if on set-password page (invite flow)
-                    if (window.location.pathname !== '/set-password') {
+                    const authPages = ['/login', '/set-password', '/auth/callback']
+                    const isOnAuthPage = authPages.some(page => window.location.pathname.startsWith(page))
+
+                    if (!isOnAuthPage) {
+                        console.log('[AuthProvider] User signed out, redirecting to login')
                         router.push('/login')
+                        router.refresh()
+                    }
+                }
+
+                // Handle password update (invite flow completion)
+                if (event === 'USER_UPDATED') {
+                    console.log('[AuthProvider] User updated (password set)')
+                    // Don't redirect here - let the set-password page handle it
+                    // Just ensure session is fresh
+                    router.refresh()
+                }
+
+                // Handle initial sign-in or successful token refresh
+                if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                    console.log('[AuthProvider] Session refreshed/established')
+
+                    // Force re-authentication of all Supabase clients
+                    // This ensures real-time channels use the new token
+                    if (event === 'TOKEN_REFRESHED' && session) {
+                        console.log('[AuthProvider] Token refreshed, invalidating queries and refreshing router')
+                        // Invalidate all queries to force refetch with new token
+                        queryClient.invalidateQueries()
+
+                        // Trigger a router refresh to update server components
                         router.refresh()
                     }
                 }
@@ -99,7 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return () => {
             subscription.unsubscribe()
         }
-    }, [router, supabase])
+    }, [router, supabase, queryClient])
 
     const signOut = async () => {
         try {

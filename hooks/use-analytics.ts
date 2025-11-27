@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { useRealtimeChannel } from '@/lib/hooks/use-realtime-channel'
 
 export interface ToolResult {
     type?: string
@@ -69,22 +70,14 @@ export function useAnalytics() {
         },
     })
 
-    useEffect(() => {
-        const channel = supabase
-            .channel('analytics-realtime')
-            .on(
-                'postgres_changes',
-                { event: '*', schema: 'public', table: 'call_analytics' },
-                () => {
-                    queryClient.invalidateQueries({ queryKey: ['analytics'] })
-                }
-            )
-            .subscribe()
-
-        return () => {
-            supabase.removeChannel(channel)
+    useRealtimeChannel('analytics-realtime', [
+        {
+            event: '*',
+            schema: 'public',
+            table: 'call_analytics',
+            callback: () => queryClient.invalidateQueries({ queryKey: ['analytics'] })
         }
-    }, [supabase, queryClient])
+    ])
 
     // Calculate stats
     const totalCalls = calls?.length || 0

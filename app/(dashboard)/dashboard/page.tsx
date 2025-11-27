@@ -1,8 +1,5 @@
-'use client'
+﻿'use client'
 
-import { useEffect, useState, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDashboard, DashboardFilters } from '@/hooks/use-dashboard'
 import { Phone, Users, TrendingUp, Star, DollarSign, Info, Percent, Award, Zap } from 'lucide-react'
@@ -24,6 +21,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
 import { CallDetailsDrawer } from '@/components/features/analytics/call-details-drawer'
+import { useState } from 'react'
 import { CallLog } from '@/hooks/use-analytics'
 import {
     Select,
@@ -40,8 +38,7 @@ import {
 } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
 
-function DashboardContent() {
-    const searchParams = useSearchParams()
+export default function DashboardPage() {
     const [filters, setFilters] = useState<DashboardFilters>({
         dateRange: 'all',
         facility: 'all'
@@ -61,14 +58,6 @@ function DashboardContent() {
     const updateFilter = (key: keyof DashboardFilters, value: string) => {
         setFilters(prev => ({ ...prev, [key]: value }))
     }
-
-    // Show toast if user was redirected due to unauthorized access
-    useEffect(() => {
-        const error = searchParams.get('error')
-        if (error === 'unauthorized') {
-            toast.error('Access denied. You do not have permission to view that page.')
-        }
-    }, [searchParams])
 
     if (isLoading) {
         return <div className="p-8 flex items-center justify-center h-full">Loading dashboard...</div>
@@ -163,7 +152,7 @@ function DashboardContent() {
                                     <TooltipContent className="max-w-xs">
                                         <p className="text-xs">Percentage of interactions resulting in a booking (Pending or Approved).</p>
                                         <p className="text-xs mt-1 text-muted-foreground">
-                                            Formula: ({data?.metrics.totalBookings || 0} Bookings / {data?.metrics.totalCalls || 0} Interactions) × 100%
+                                            Formula: ({data?.metrics.totalBookings || 0} Bookings / {data?.metrics.totalCalls || 0} Interactions) ├ù 100%
                                         </p>
                                     </TooltipContent>
                                 </Tooltip>
@@ -213,7 +202,7 @@ function DashboardContent() {
                                     <TooltipContent className="max-w-xs">
                                         <p className="text-xs">Percentage of total units currently occupied.</p>
                                         <p className="text-xs mt-1 text-muted-foreground">
-                                            Formula: ({data?.metrics.occupiedUnits || 0} Occupied / {data?.metrics.totalUnits || 0} Total) × 100%
+                                            Formula: ({data?.metrics.occupiedUnits || 0} Occupied / {data?.metrics.totalUnits || 0} Total) ├ù 100%
                                         </p>
                                     </TooltipContent>
                                 </Tooltip>
@@ -237,42 +226,37 @@ function DashboardContent() {
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs">
                                         <p className="font-semibold mb-1">ElevenLabs Platform Credits</p>
-                                        <p className="text-xs">
-                                            Credits are used for voice synthesis and processing.
-                                            One credit roughly equals one character of text.
-                                        </p>
-                                        <div className="mt-2 border-t pt-2">
-                                            <p className="text-xs font-medium">Usage Breakdown:</p>
-                                            <ul className="list-disc pl-3 text-xs text-muted-foreground mt-1">
-                                                <li>Voice Synthesis</li>
-                                                <li>Speech Recognition</li>
-                                                <li>Language Processing</li>
-                                            </ul>
-                                        </div>
+                                        <p className="text-xs">Total credits consumed (not dollars). Credits are charged for:</p>
+                                        <ul className="text-xs mt-1 space-y-1">
+                                            <li>ΓÇó <strong>LLM Usage</strong>: AI conversation processing (e.g., natural language understanding)</li>
+                                            <li>ΓÇó <strong>Voice Calls</strong>: Call time duration</li>
+                                        </ul>
+                                        <p className="text-xs mt-1 text-muted-foreground">Check your ElevenLabs dashboard for credit pricing</p>
                                     </TooltipContent>
                                 </Tooltip>
                             </CardTitle>
-                            <Zap className="h-4 w-4 text-muted-foreground" />
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent className="min-h-[60px] flex flex-col justify-center">
-                            <div className="text-2xl font-bold">{metrics?.totalCredits?.toLocaleString() || '0'}</div>
-                            <p className="text-xs text-muted-foreground">
-                                Total credits used
-                            </p>
+                            <div className="text-2xl font-bold">{metrics?.totalCredits || 0}</div>
+                            <div className="text-xs text-muted-foreground space-y-0.5">
+                                <div>LLM: {metrics?.totalLLMCredits || 0}</div>
+                                <div>Voice: {metrics?.totalCallCredits || 0}</div>
+                            </div>
                         </CardContent>
                     </Card>
                     <Card sash>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium flex items-center gap-1">
-                                Estimated ROI
+                                Avg Credits/Call
                                 <Tooltip>
                                     <TooltipTrigger>
                                         <Info className="h-3 w-3 text-muted-foreground" />
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs">
-                                        <p className="text-xs">Estimated Return on Investment based on automated bookings vs. platform costs.</p>
+                                        <p className="text-xs">Average ElevenLabs credits consumed per conversation.</p>
                                         <p className="text-xs mt-1 text-muted-foreground">
-                                            Formula: ((Revenue - Costs) / Costs) × 100%
+                                            Formula: {data?.metrics.totalCredits?.toLocaleString() || 0} Credits / {data?.metrics.totalCalls || 0} Interactions
                                         </p>
                                     </TooltipContent>
                                 </Tooltip>
@@ -280,139 +264,240 @@ function DashboardContent() {
                             <DollarSign className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent className="min-h-[60px] flex flex-col justify-center">
-                            <div className={`text-2xl font-bold ${metrics?.roi && metrics.roi >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                {metrics?.roi ? `${metrics.roi > 0 ? '+' : ''}${metrics.roi}%` : '0%'}
-                            </div>
+                            <div className="text-2xl font-bold">{metrics?.avgCreditsPerCall || 0}</div>
                             <p className="text-xs text-muted-foreground">
-                                ${metrics?.netRevenue?.toLocaleString() || '0'} net revenue
+                                Per conversation
                             </p>
                         </CardContent>
                     </Card>
-                </div>
+                </div >
 
-                <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
-                    <Card className="col-span-1 lg:col-span-4">
-                        <CardHeader>
-                            <CardTitle>Call Volume & Bookings</CardTitle>
+                {/* Business Performance KPI Cards */}
+                < div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-6" >
+                    <Card sash>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium flex items-center gap-1">
+                                Cost per Booking
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <Info className="h-3 w-3 text-muted-foreground" />
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                        <p className="text-xs">ElevenLabs credits spent per approved booking. Lower is better.</p>
+                                        <p className="text-xs mt-1 text-muted-foreground">
+                                            Formula: {data?.metrics.totalCredits?.toLocaleString() || 0} Credits / {data?.metrics.approvedBookings || 0} Approved
+                                        </p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </CardTitle>
+                            <TrendingUp className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
-                        <CardContent className="pl-2">
-                            <CallVolumeChart data={data?.charts.callVolumeData || []} />
+                        <CardContent className="min-h-[60px] flex flex-col justify-center">
+                            <div className="text-2xl font-bold">{metrics?.costPerBooking || 0}</div>
+                            <p className="text-xs text-muted-foreground">
+                                Credits per conversion
+                            </p>
                         </CardContent>
                     </Card>
-                    <Card className="col-span-1 lg:col-span-3">
-                        <CardHeader>
-                            <CardTitle>Lead Quality Distribution</CardTitle>
+                    <Card sash>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium flex items-center gap-1">
+                                Monthly Revenue
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <Info className="h-3 w-3 text-muted-foreground" />
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                        <p className="text-xs">Monthly commission revenue from all Active bookings (10% of monthly rent).</p>
+                                        <p className="text-xs mt-1 text-muted-foreground">
+                                            Commission from {data?.metrics.activeBookingsCount || 0} active leases
+                                        </p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </CardTitle>
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
-                        <CardContent>
-                            <LeadQualityChart data={data?.charts.leadQualityData || []} />
+                        <CardContent className="min-h-[60px] flex flex-col justify-center">
+                            <div className="text-2xl font-bold">${metrics?.totalMonthlyRevenue || 0}</div>
+                            <p className="text-xs text-muted-foreground">
+                                From {metrics?.activeBookingsCount || 0} active leases
+                            </p>
                         </CardContent>
                     </Card>
-                </div>
+                    <Card sash>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium flex items-center gap-1">
+                                ROI
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <Info className="h-3 w-3 text-muted-foreground" />
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                        <p className="text-xs">Return on Investment: Commission revenue vs platform cost.</p>
+                                        <p className="text-xs mt-1 text-muted-foreground">
+                                            Formula: ((${data?.metrics.totalMonthlyRevenue?.toLocaleString() || 0} Commission - ${data?.metrics.estimatedCreditCost?.toFixed(2) || 0} Cost) / ${data?.metrics.estimatedCreditCost?.toFixed(2) || 0}) ├ù 100%
+                                        </p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </CardTitle>
+                            <Percent className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent className="min-h-[60px] flex flex-col justify-center">
+                            <div className="text-2xl font-bold">{metrics?.roi || '0.0'}%</div>
+                            <p className="text-xs text-muted-foreground">
+                                Platform efficiency
+                            </p>
+                        </CardContent>
+                    </Card>
+                    <Card sash>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium flex items-center gap-1">
+                                Lead Quality
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <Info className="h-3 w-3 text-muted-foreground" />
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                        <p className="text-xs">Percentage of calls rated as &quot;High&quot; quality by AI.</p>
+                                        <p className="text-xs mt-1 text-muted-foreground">
+                                            Formula: ({data?.metrics.highQualityLeads || 0} High Quality / {data?.metrics.totalCalls || 0} Total) ├ù 100%
+                                        </p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </CardTitle>
+                            <Award className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent className="min-h-[60px] flex flex-col justify-center">
+                            <div className="text-2xl font-bold">{metrics?.highQualityRate || '0.0'}%</div>
+                            <p className="text-xs text-muted-foreground">
+                                {metrics?.highQualityLeads || 0} high quality leads
+                            </p>
+                        </CardContent>
+                    </Card>
+                    <Card sash>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium flex items-center gap-1">
+                                Call Efficiency
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <Info className="h-3 w-3 text-muted-foreground" />
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                        <p className="text-xs">Number of bookings generated per 1,000 credits spent.</p>
+                                        <p className="text-xs mt-1 text-muted-foreground">
+                                            Formula: ({data?.metrics.totalBookings || 0} Bookings / {data?.metrics.totalCredits?.toLocaleString() || 0} Credits) ├ù 1000
+                                        </p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </CardTitle>
+                            <Zap className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent className="min-h-[60px] flex flex-col justify-center">
+                            <div className="text-2xl font-bold">{metrics?.callEfficiency || '0.00'}</div>
+                            <p className="text-xs text-muted-foreground">
+                                Bookings per 1K credits
+                            </p>
+                        </CardContent>
+                    </Card>
+                    <Card sash>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium flex items-center gap-1">
+                                Active Leases
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <Info className="h-3 w-3 text-muted-foreground" />
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                        <p className="text-xs">Total number of currently active bookings generating revenue.</p>
+                                        <p className="text-xs mt-1 text-muted-foreground">
+                                            Currently {data?.metrics.activeBookingsCount || 0} active leases
+                                        </p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </CardTitle>
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent className="min-h-[60px] flex flex-col justify-center">
+                            <div className="text-2xl font-bold">{metrics?.activeBookingsCount || 0}</div>
+                            <p className="text-xs text-muted-foreground">
+                                Currently generating revenue
+                            </p>
+                        </CardContent>
+                    </Card>
+                </div >
 
-                <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
-                    <Card className="col-span-1">
-                        <CardHeader>
-                            <CardTitle>Unit Status</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <UnitStatusChart data={data?.charts.unitStatusDistribution || []} />
-                        </CardContent>
-                    </Card>
-                    <Card className="col-span-1">
-                        <CardHeader>
-                            <CardTitle>Facility Breakdown</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <FacilityBreakdownChart data={data?.charts.facilityBreakdown || []} />
-                        </CardContent>
-                    </Card>
-                    <Card className="col-span-1">
-                        <CardHeader>
-                            <CardTitle>CSAT Trend</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <CsatChart data={data?.charts.csatChartData || []} />
-                        </CardContent>
-                    </Card>
-                </div>
+                {/* Main Charts Section */}
+                < div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7" >
+                    <div className="col-span-4">
+                        {data?.charts?.callVolumeData && <CallVolumeChart data={data.charts.callVolumeData} />}
+                    </div>
+                    <div className="col-span-3">
+                        {data?.charts?.unitStatusDistribution && <UnitStatusChart data={data.charts.unitStatusDistribution} />}
+                    </div>
+                </div >
 
-                <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-                    <Card className="col-span-1">
-                        <CardHeader>
-                            <CardTitle>Occupancy by Facility</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <OccupancyByFacilityChart data={data?.charts.facilityBreakdown || []} />
-                        </CardContent>
-                    </Card>
-                    <Card className="col-span-1">
-                        <CardHeader>
-                            <CardTitle>Call Duration Trend</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <DurationTrendChart data={data?.charts.durationTrendData || []} />
-                        </CardContent>
-                    </Card>
-                </div>
+                {/* ROI & Performance Analytics */}
+                < div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7" >
+                    <div className="col-span-4">
+                        {data?.charts?.roiTrendData && <ROITrendChart data={data.charts.roiTrendData} />}
+                    </div>
+                    <div className="col-span-3">
+                        {data?.charts?.revenueByFacility && <RevenueByFacilityChart data={data.charts.revenueByFacility} />}
+                    </div>
+                </div >
 
-                <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-                    <Card className="col-span-1">
-                        <CardHeader>
-                            <CardTitle>Competitor Mentions</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <CompetitorMentions data={data?.charts.competitorData || []} />
-                        </CardContent>
-                    </Card>
-                    <Card className="col-span-1">
-                        <CardHeader>
-                            <CardTitle>ROI Trend</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <ROITrendChart data={data?.charts.roiTrendData || []} />
-                        </CardContent>
-                    </Card>
-                </div>
+                {/* Conversion & Lead Quality Analysis */}
+                < div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" >
+                    <div className="col-span-2">
+                        {data?.charts?.conversionFunnelData && <ConversionFunnelChart data={data.charts.conversionFunnelData} />}
+                    </div>
+                    <div className="col-span-2">
+                        {data?.charts?.leadQualityPerformanceData && <LeadQualityPerformanceChart data={data.charts.leadQualityPerformanceData} />}
+                    </div>
+                </div >
 
-                <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-                    <Card className="col-span-1">
-                        <CardHeader>
-                            <CardTitle>Revenue by Facility</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <RevenueByFacilityChart data={data?.charts.revenueByFacility || []} />
-                        </CardContent>
-                    </Card>
-                    <Card className="col-span-1">
-                        <CardHeader>
-                            <CardTitle>Conversion Funnel</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <ConversionFunnelChart data={data?.charts.conversionFunnelData || []} />
-                        </CardContent>
-                    </Card>
-                </div>
+                {/* Cost Analysis */}
+                < div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" >
+                    <div className="col-span-2">
+                        {data?.charts?.creditBreakdownData && <CreditBreakdownChart data={data.charts.creditBreakdownData} />}
+                    </div>
+                    <div className="col-span-2">
+                        {data?.charts?.durationTrendData && <DurationTrendChart data={data.charts.durationTrendData} />}
+                    </div>
+                </div >
 
-                <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-                    <Card className="col-span-1">
-                        <CardHeader>
-                            <CardTitle>Lead Quality Performance</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <LeadQualityPerformanceChart data={data?.charts.leadQualityPerformanceData || []} />
-                        </CardContent>
-                    </Card>
-                    <Card className="col-span-1">
-                        <CardHeader>
-                            <CardTitle>Credit Usage Breakdown</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <CreditBreakdownChart data={data?.charts.creditBreakdownData || []} />
-                        </CardContent>
-                    </Card>
-                </div>
+                {/* Secondary Charts - CSAT & Lead Quality */}
+                < div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" >
+                    <div className="col-span-2">
+                        {data?.charts?.csatChartData && <CsatChart data={data.charts.csatChartData} />}
+                    </div>
+                    <div className="col-span-2">
+                        {data?.charts?.leadQualityData && <LeadQualityChart data={data.charts.leadQualityData} />}
+                    </div>
+                </div >
 
-                <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
+                {/* Facility-Level Insights */}
+                < div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" >
+                    <div className="col-span-2">
+                        {data?.charts?.facilityBreakdown && <FacilityBreakdownChart data={data.charts.facilityBreakdown} />}
+                    </div>
+                    <div className="col-span-2">
+                        {data?.charts?.facilityBreakdown && <OccupancyByFacilityChart data={data.charts.facilityBreakdown} />}
+                    </div>
+                </div >
+
+                {/* Additional Analytics */}
+                < div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" >
+                    <div className="col-span-2">
+                        {data?.charts?.durationTrendData && <DurationTrendChart data={data.charts.durationTrendData} />}
+                    </div>
+                    <div className="col-span-2">
+                        {data?.charts?.competitorData && <CompetitorMentions data={data.charts.competitorData} />}
+                    </div>
+                </div >
+
+                {/* Recent Activity Feed */}
+                < div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7" >
                     <Card className="col-span-7">
                         <CardHeader>
                             <CardTitle>Recent Activity</CardTitle>
@@ -427,7 +512,7 @@ function DashboardContent() {
                                                     Call from {call.start_time ? format(new Date(call.start_time), 'MMM d, h:mm a') : 'Unknown time'}
                                                 </p>
                                                 <p className="text-sm text-muted-foreground">
-                                                    Duration: {call.duration_seconds}s • CSAT: {call.csat_score || 'N/A'} • Lead: {call.lead_quality_score || 'N/A'}
+                                                    Duration: {call.duration_seconds}s ΓÇó CSAT: {call.csat_score || 'N/A'} ΓÇó Lead: {call.lead_quality_score || 'N/A'}
                                                 </p>
                                             </div>
                                             <div className="ml-auto font-medium">
@@ -445,22 +530,14 @@ function DashboardContent() {
                             </div>
                         </CardContent>
                     </Card>
-                </div>
+                </div >
 
                 <CallDetailsDrawer
+                    call={selectedCall}
                     open={drawerOpen}
                     onOpenChange={setDrawerOpen}
-                    call={selectedCall}
                 />
-            </div>
-        </TooltipProvider>
-    )
-}
-
-export default function DashboardPage() {
-    return (
-        <Suspense fallback={<div className="p-8 flex items-center justify-center h-full">Loading dashboard...</div>}>
-            <DashboardContent />
-        </Suspense>
+            </div >
+        </TooltipProvider >
     )
 }

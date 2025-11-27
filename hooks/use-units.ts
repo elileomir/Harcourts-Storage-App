@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { useRealtimeChannel } from '@/lib/hooks/use-realtime-channel'
 
 export type Unit = {
     id: number
@@ -34,22 +35,14 @@ export function useUnits() {
         },
     })
 
-    useEffect(() => {
-        const channel = supabase
-            .channel('units-realtime')
-            .on(
-                'postgres_changes',
-                { event: '*', schema: 'public', table: 'storage_units' },
-                () => {
-                    queryClient.invalidateQueries({ queryKey: ['units'] })
-                }
-            )
-            .subscribe()
-
-        return () => {
-            supabase.removeChannel(channel)
+    useRealtimeChannel('units-realtime', [
+        {
+            event: '*',
+            schema: 'public',
+            table: 'storage_units',
+            callback: () => queryClient.invalidateQueries({ queryKey: ['units'] })
         }
-    }, [supabase, queryClient])
+    ])
 
     const updateStatus = useMutation({
         mutationFn: async ({ id, status }: { id: number; status: string }) => {

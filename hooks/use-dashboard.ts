@@ -7,6 +7,7 @@ import { parseMonthlyPrice } from '@/lib/utils/price'
 import { usePlatformSettings } from './use-platform-settings'
 import { Unit } from './use-units'
 import { Booking } from './use-bookings'
+import { useRealtimeChannel } from '@/lib/hooks/use-realtime-channel'
 
 interface FacilityItem {
     facility: string | null
@@ -479,24 +480,26 @@ export function useDashboard(filters: DashboardFilters = {}) {
         },
     })
 
-    useEffect(() => {
-        const channel = supabase
-            .channel('dashboard-realtime')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'storage_units' }, () => {
-                queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, () => {
-                queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'call_analytics' }, () => {
-                queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-            })
-            .subscribe()
-
-        return () => {
-            supabase.removeChannel(channel)
-        }
-    }, [supabase, queryClient])
+    useRealtimeChannel('dashboard-realtime', [
+        {
+            event: '*',
+            schema: 'public',
+            table: 'storage_units',
+            callback: () => queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+        },
+        {
+            event: '*',
+            schema: 'public',
+            table: 'bookings',
+            callback: () => queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+        },
+        {
+            event: '*',
+            schema: 'public',
+            table: 'call_analytics',
+            callback: () => queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+        },
+    ])
 
     return { data, isLoading, error }
 }

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { useRealtimeChannel } from '@/lib/hooks/use-realtime-channel'
 
 export type Booking = {
     id: number
@@ -37,22 +38,14 @@ export function useBookings() {
         },
     })
 
-    useEffect(() => {
-        const channel = supabase
-            .channel('bookings-realtime')
-            .on(
-                'postgres_changes',
-                { event: '*', schema: 'public', table: 'bookings' },
-                () => {
-                    queryClient.invalidateQueries({ queryKey: ['bookings'] })
-                }
-            )
-            .subscribe()
-
-        return () => {
-            supabase.removeChannel(channel)
+    useRealtimeChannel('bookings-realtime', [
+        {
+            event: '*',
+            schema: 'public',
+            table: 'bookings',
+            callback: () => queryClient.invalidateQueries({ queryKey: ['bookings'] })
         }
-    }, [supabase, queryClient])
+    ])
 
     const updateStatus = useMutation({
         mutationFn: async ({ id, status }: { id: number; status: string }) => {

@@ -12,11 +12,18 @@ export async function GET(request: Request) {
         const { error } = await supabase.auth.exchangeCodeForSession(code)
 
         if (!error) {
+            // Check if this is an invite
+            if (type === 'invite') {
+                // Redirect to set-password page for invited users
+                return NextResponse.redirect(new URL('/set-password', request.url))
+            }
+
+            // Regular auth flow (e.g., email confirmation, password reset)
             return NextResponse.redirect(new URL(next, request.url))
         }
     }
 
-    // Default: redirect to dashboard
+    // Default: check if user is authenticated
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 

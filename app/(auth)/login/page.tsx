@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -17,48 +17,6 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false)
     const router = useRouter()
     const supabase = createClient()
-
-    // Check if this is an invite redirect and process the hash
-    useEffect(() => {
-        const processInviteHash = async () => {
-            const hash = window.location.hash
-
-            if (hash.includes('type=invite') && hash.includes('access_token')) {
-                setLoading(true)
-
-                try {
-                    // Parse the hash fragment to extract tokens
-                    const hashParams = new URLSearchParams(hash.substring(1))
-                    const accessToken = hashParams.get('access_token')
-                    const refreshToken = hashParams.get('refresh_token')
-
-                    if (accessToken && refreshToken) {
-                        // Manually set the session
-                        const { error } = await supabase.auth.setSession({
-                            access_token: accessToken,
-                            refresh_token: refreshToken
-                        })
-
-                        if (error) {
-                            setError(`Failed to establish session: ${error.message}`)
-                            setLoading(false)
-                        } else {
-                            // Session established successfully - redirect to set password
-                            router.replace('/set-password')
-                        }
-                    } else {
-                        setError('Invalid invite link - missing tokens')
-                        setLoading(false)
-                    }
-                } catch {
-                    setError('Failed to process invite link')
-                    setLoading(false)
-                }
-            }
-        }
-
-        processInviteHash()
-    }, [router, supabase])
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -146,7 +104,7 @@ export default function LoginPage() {
                             {loading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    {window.location.hash.includes('type=invite') ? 'Processing invite...' : 'Signing in...'}
+                                    Signing in...
                                 </>
                             ) : (
                                 'Sign In'
