@@ -12,6 +12,16 @@ export async function GET(request: Request) {
     console.log('[Callback] Processing auth callback:', { type, hasTokenHash: !!token_hash })
 
     if (token_hash && type) {
+        // For invites, skip server-side verification and pass token to set-password page
+        // This avoids consuming the one-time-use token before client can use it
+        if (type === 'invite') {
+            console.log('[Callback] Invite token detected, passing to set-password for client-side verification')
+            const setPasswordUrl = new URL('/set-password', request.url)
+            setPasswordUrl.searchParams.set('token_hash', token_hash)
+            setPasswordUrl.searchParams.set('type', type)
+            return NextResponse.redirect(setPasswordUrl)
+        }
+
         const cookieStore = await cookies()
 
         // Create supabase client with proper cookie handling for redirects
@@ -32,7 +42,7 @@ export async function GET(request: Request) {
             }
         )
 
-        // Use verifyOtp for email-based auth (invites, magic links, etc.)
+        // Use verifyOtp for email-based auth (recovery, magic links, etc.)
         const { data, error } = await supabase.auth.verifyOtp({
             token_hash,
             type: type as EmailOtpType
@@ -48,13 +58,8 @@ export async function GET(request: Request) {
             // Create response with redirect
             let redirectUrl: URL
 
-            // Check if this is an invite
-            if (type === 'invite') {
-                console.log('[Callback] Invite verified, redirecting to set-password')
-                redirectUrl = new URL('/set-password', request.url)
-            }
             // Check if this is a password reset
-            else if (type === 'recovery') {
+            if (type === 'recovery') {
                 console.log('[Callback] Password reset verified, redirecting to reset-password')
                 redirectUrl = new URL('/reset-password', request.url)
             }
@@ -71,11 +76,11 @@ export async function GET(request: Request) {
         // If verification failed
         console.error('[Callback] OTP verification failed:', error?.message)
 
-        if (type === 'invite') {
-            const setPasswordUrl = new URL('/set-password', request.url)
-            setPasswordUrl.searchParams.set('error', 'verification_failed')
-            setPasswordUrl.searchParams.set('error_description', error?.message || 'Invalid or expired invite link')
-            return NextResponse.redirect(setPasswordUrl)
+        if (type === 'recovery') {
+            const resetPasswordUrl = new URL('/reset-password', request.url)
+            resetPasswordUrl.searchParams.set('error', 'verification_failed')
+            resetPasswordUrl.searchParams.set('error_description', error?.message || 'Invalid or expired reset link')
+            return NextResponse.redirect(resetPasswordUrl)
         }
     }
 
