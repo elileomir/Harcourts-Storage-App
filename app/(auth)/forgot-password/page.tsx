@@ -95,7 +95,7 @@ export default function ForgotPasswordPage() {
                                 />
                             </div>
                         </CardContent>
-                        <CardFooter className="flex flex-col space-y-4">
+                        <CardFooter className="flex flex-col space-y-4 pt-4">
                             <Button
                                 type="submit"
                                 className="w-full bg-[#003366] hover:bg-[#002244]"

@@ -113,13 +113,7 @@ export default function SetPasswordPage() {
         setLoading(true)
 
         try {
-            // Verify session first
-            const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-            if (sessionError || !session) {
-                throw new Error('Session invalid. Please refresh the page and try the invite link again.')
-            }
-
-            console.log('[SetPassword] Updating password for user:', session.user.id)
+            console.log('[SetPassword] Updating password...')
 
             // Update password - fire and forget, redirect immediately
             supabase.auth.updateUser({ password: password }).then(({ error: updateError }) => {

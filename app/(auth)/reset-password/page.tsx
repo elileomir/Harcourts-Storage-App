@@ -25,6 +25,42 @@ export default function ResetPasswordPage() {
         const checkSession = async () => {
             console.log('[ResetPassword] Checking for session...')
 
+            // First, check if this is a recovery with hash tokens (PKCE flow)
+            const hash = window.location.hash
+            if (hash.includes('access_token')) {
+                console.log('[ResetPassword] Found hash tokens, setting session from URL...')
+                const hashParams = new URLSearchParams(hash.substring(1))
+                const accessToken = hashParams.get('access_token')
+                const refreshToken = hashParams.get('refresh_token')
+
+                if (accessToken && refreshToken) {
+                    const { error } = await supabase.auth.setSession({
+                        access_token: accessToken,
+                        refresh_token: refreshToken
+                    })
+
+                    if (error) {
+                        console.error('[ResetPassword] Error setting session from hash:', error)
+                        // Check if session exists anyway (cookies might have been set)
+                        const { data: { session } } = await supabase.auth.getSession()
+                        if (session) {
+                            console.log('[ResetPassword] Session exists despite error')
+                            setValidSession(true)
+                            return
+                        } else {
+                            setError('Invalid or expired reset link. Please request a new password reset.')
+                            setTimeout(() => router.push('/forgot-password'), 3000)
+                            return
+                        }
+                    } else {
+                        console.log('[ResetPassword] Session established from hash tokens')
+                        setValidSession(true)
+                        return
+                    }
+                }
+            }
+
+            // No hash tokens, check for existing session (from server-side callback)
             // Retry logic: wait for session to be available (callback sets it server-side)
             let session = null
             let retries = 3
@@ -45,7 +81,6 @@ export default function ResetPasswordPage() {
             if (session) {
                 console.log('[ResetPassword] Setting validSession to true')
                 setValidSession(true)
-                console.log('[ResetPassword] validSession state updated')
             } else {
                 console.error('[ResetPassword] No session found after retries')
                 setError('Invalid or expired reset link. Please request a new password reset.')
