@@ -1,6 +1,7 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import { EmailOtpType } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
 
 export async function GET(request: Request) {
     const requestUrl = new URL(request.url)
@@ -11,7 +12,25 @@ export async function GET(request: Request) {
     console.log('[Callback] Processing auth callback:', { type, hasTokenHash: !!token_hash })
 
     if (token_hash && type) {
-        const supabase = await createClient()
+        const cookieStore = await cookies()
+
+        // Create supabase client with proper cookie handling for redirects
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    getAll() {
+                        return cookieStore.getAll()
+                    },
+                    setAll(cookiesToSet) {
+                        cookiesToSet.forEach(({ name, value, options }) =>
+                            cookieStore.set(name, value, options)
+                        )
+                    },
+                },
+            }
+        )
 
         // Use verifyOtp for email-based auth (invites, magic links, etc.)
         const { data, error } = await supabase.auth.verifyOtp({
@@ -26,21 +45,27 @@ export async function GET(request: Request) {
         })
 
         if (!error && data.session) {
+            // Create response with redirect
+            let redirectUrl: URL
+
             // Check if this is an invite
             if (type === 'invite') {
                 console.log('[Callback] Invite verified, redirecting to set-password')
-                return NextResponse.redirect(new URL('/set-password', request.url))
+                redirectUrl = new URL('/set-password', request.url)
             }
-
             // Check if this is a password reset
-            if (type === 'recovery') {
+            else if (type === 'recovery') {
                 console.log('[Callback] Password reset verified, redirecting to reset-password')
-                return NextResponse.redirect(new URL('/reset-password', request.url))
+                redirectUrl = new URL('/reset-password', request.url)
+            }
+            // Regular auth flow (e.g., magic link, email confirmation)
+            else {
+                console.log('[Callback] Auth verified, redirecting to:', next)
+                redirectUrl = new URL(next, request.url)
             }
 
-            // Regular auth flow (e.g., magic link, email confirmation)
-            console.log('[Callback] Auth verified, redirecting to:', next)
-            return NextResponse.redirect(new URL(next, request.url))
+            // Return redirect response - cookies are already set by createServerClient
+            return NextResponse.redirect(redirectUrl)
         }
 
         // If verification failed
@@ -55,7 +80,24 @@ export async function GET(request: Request) {
     }
 
     // Default: check if user is authenticated
-    const supabase = await createClient()
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll() {
+                    return cookieStore.getAll()
+                },
+                setAll(cookiesToSet) {
+                    cookiesToSet.forEach(({ name, value, options }) =>
+                        cookieStore.set(name, value, options)
+                    )
+                },
+            },
+        }
+    )
+
     const { data: { user } } = await supabase.auth.getUser()
 
     console.log('[Callback] No token_hash or verification failed, checking user:', { hasUser: !!user, type })

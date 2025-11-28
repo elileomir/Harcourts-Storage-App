@@ -512,7 +512,7 @@ export default function DashboardPage() {
                                                     Call from {call.start_time ? format(new Date(call.start_time), 'MMM d, h:mm a') : 'Unknown time'}
                                                 </p>
                                                 <p className="text-sm text-muted-foreground">
-                                                    Duration: {call.duration_seconds}s ΓÇó CSAT: {call.csat_score || 'N/A'} ΓÇó Lead: {call.lead_quality_score || 'N/A'}
+                                                    Duration: {call.duration_seconds}s • CSAT: {call.csat_score || 'N/A'} • Lead: {call.lead_quality_score || 'N/A'}
                                                 </p>
                                             </div>
                                             <div className="ml-auto font-medium">
