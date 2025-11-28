@@ -17,29 +17,53 @@ export default function SetPasswordPage() {
     const [error, setError] = useState('')
     const supabase = createClient()
 
-    // Process invite hash tokens if present, otherwise verify existing session
+    // Process invite tokens - query params, hash tokens, or existing session
     useEffect(() => {
         const processInviteOrSession = async () => {
             try {
-                const hash = window.location.hash
+                // FIRST: Check for query parameter tokens (from callback redirect on Netlify)
+                const urlParams = new URLSearchParams(window.location.search)
+                const tokenHash = urlParams.get('token_hash')
+                const type = urlParams.get('type')
 
-                // Check if this is an invite with hash tokens
+                if (tokenHash && type === 'invite') {
+                    console.log('[SetPassword] Found query parameter token, verifying...')
+
+                    const { data, error } = await supabase.auth.verifyOtp({
+                        token_hash: tokenHash,
+                        type: 'invite'
+                    })
+
+                    if (error) {
+                        console.error('[SetPassword] Token verification error:', error)
+                        setError('Invalid or expired invite link. Please request a new one from your administrator.')
+                        setTimeout(() => router.push('/login'), 3000)
+                        return
+                    }
+
+                    if (data.session) {
+                        console.log('[SetPassword] Session established from query token!')
+                        setError('')
+                        return
+                    }
+                }
+
+                // SECOND: Check if this is an invite with hash tokens
+                const hash = window.location.hash
                 if (hash.includes('access_token')) {
+                    console.log('[SetPassword] Found hash tokens, setting session...')
                     const hashParams = new URLSearchParams(hash.substring(1))
                     const accessToken = hashParams.get('access_token')
                     const refreshToken = hashParams.get('refresh_token')
 
                     if (accessToken && refreshToken) {
-                        // Set session from hash tokens
                         const { error } = await supabase.auth.setSession({
                             access_token: accessToken,
                             refresh_token: refreshToken
                         })
 
                         if (error) {
-                            // Common error: token already used or expired
                             if (error.message.includes('already') || error.message.includes('expired')) {
-                                // Check if we have a valid session anyway (cookies might have been set)
                                 const { data: { session } } = await supabase.auth.getSession()
                                 if (session) {
                                     console.log('[SetPassword] Hash token already used, but session exists')
@@ -58,11 +82,9 @@ export default function SetPasswordPage() {
                     }
                 }
 
-                // No hash tokens, check for existing session (user may have already established session)
-                // The callback route exchanges the code server-side, but we need to wait for cookies to propagate
-                console.log('[SetPassword] No hash tokens, checking for session from callback...')
+                // THIRD: No tokens, check for existing session (from server-side callback)
+                console.log('[SetPassword] No tokens, checking for session from callback...')
 
-                // Retry logic: wait for session to be available (callback sets it server-side)
                 let session = null
                 let retries = 3
 
@@ -72,7 +94,7 @@ export default function SetPasswordPage() {
 
                     if (!session) {
                         console.log(`[SetPassword] No session yet, retrying... (${retries} attempts left)`)
-                        await new Promise(resolve => setTimeout(resolve, 500)) // Wait 500ms
+                        await new Promise(resolve => setTimeout(resolve, 500))
                         retries--
                     } else {
                         console.log('[SetPassword] Session found after retry!')
@@ -94,7 +116,7 @@ export default function SetPasswordPage() {
         }
 
         processInviteOrSession()
-    }, [router]) // supabase client is stable and doesn't need to be in deps
+    }, [router])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -115,14 +137,12 @@ export default function SetPasswordPage() {
         try {
             console.log('[SetPassword] Updating password...')
 
-            // Update password - fire and forget, redirect immediately
             supabase.auth.updateUser({ password: password }).then(({ error: updateError }) => {
                 if (updateError) {
                     console.error('[SetPassword] Password update error:', updateError)
                 }
             })
 
-            // Redirect immediately without waiting
             console.log('[SetPassword] Redirecting to dashboard...')
             setTimeout(() => {
                 window.location.replace('/dashboard')
