@@ -121,12 +121,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log("[AuthProvider] Token refreshed, invalidating queries");
           // Invalidate all queries to force refetch with new token
           queryClient.invalidateQueries();
-          // NOTE: Removed router.refresh() to prevent hydration errors (#418)
+          // NOTE: No navigation needed - query invalidation is sufficient
         } else if (event === "SIGNED_IN") {
-          console.log("[AuthProvider] Signed in, invalidating queries");
+          console.log(
+            "[AuthProvider] Signed in, invalidating queries and refreshing"
+          );
           // Invalidate queries to load fresh data
           queryClient.invalidateQueries();
-          // NOTE: Removed router.refresh() to prevent hydration errors (#418)
+          // Use client-side navigation to current path to force re-render
+          // This avoids SSR (no hydration error) but ensures page re-renders
+          const currentPath = window.location.pathname + window.location.search;
+          router.push(currentPath);
         }
       }
     });
