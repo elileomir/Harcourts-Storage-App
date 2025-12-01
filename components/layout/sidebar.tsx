@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Box, Users, Phone, BookOpen, LogOut, Settings, User } from 'lucide-react'
+import { LayoutDashboard, Box, Users, Phone, BookOpen, LogOut, Settings, User, PhoneIncoming } from 'lucide-react'
 import { useAuth } from '@/components/providers/auth-provider'
 import { Button } from '@/components/ui/button'
 import Image from 'next/image'
@@ -15,6 +15,7 @@ const navigation = [
     { name: 'Units', href: '/dashboard/units', icon: Box },
     { name: 'Bookings', href: '/dashboard/bookings', icon: Users },
     { name: 'Analytics', href: '/dashboard/analytics', icon: Phone },
+    { name: 'Callback Requests', href: '/dashboard/callback-requests', icon: PhoneIncoming },
     { name: 'Knowledge Base', href: '/dashboard/knowledge', icon: BookOpen },
     { name: 'Settings', href: '/dashboard/settings', icon: User },
     { name: 'Users', href: '/dashboard/users', icon: Users, adminOnly: true },

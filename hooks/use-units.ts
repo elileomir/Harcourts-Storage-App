@@ -1,103 +1,126 @@
-import { useEffect } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { createClient } from '@/lib/supabase/client'
-import { useRealtimeChannel } from '@/lib/hooks/use-realtime-channel'
+import { useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createClient } from "@/lib/supabase/client";
+import { useRealtimeChannel } from "@/lib/hooks/use-realtime-channel";
 
 export type Unit = {
-    id: number
-    unit_number: string
-    facility: string
-    unit_type: string
-    size: string
-    price: string
-    bond: string
-    access_hours: string
-    status: 'Available' | 'Submitted' | 'Unavailable'
-}
+  id: number;
+  unit_number: string;
+  facility: string;
+  unit_type: string;
+  size: string;
+  price: string;
+  bond: string;
+  access_hours: string;
+  status: "Available" | "Submitted" | "Unavailable";
+};
 
-export type UnitInput = Omit<Unit, 'id'>
+export type UnitInput = Omit<Unit, "id">;
 
 export function useUnits() {
-    const supabase = createClient()
-    const queryClient = useQueryClient()
+  const supabase = createClient();
+  const queryClient = useQueryClient();
 
-    const { data: units, isLoading, error } = useQuery({
-        queryKey: ['units'],
-        queryFn: async () => {
-            const { data, error } = await supabase
-                .from('storage_units')
-                .select('*')
-                .order('facility', { ascending: true })
-                .order('unit_number', { ascending: true })
+  const {
+    data: units,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["units"],
+    queryFn: async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-            if (error) throw error
-            return data as Unit[]
-        },
-    })
+      try {
+        const { data, error } = await supabase
+          .from("storage_units")
+          .select("*, bookings(*)")
+          .abortSignal(controller.signal);
 
-    useRealtimeChannel('units-realtime', [
-        {
-            event: '*',
-            schema: 'public',
-            table: 'storage_units',
-            callback: () => queryClient.invalidateQueries({ queryKey: ['units'] })
-        }
-    ])
+        if (error) throw error;
+        return data as Unit[];
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    },
+    retry: 1,
+  });
 
-    const updateStatus = useMutation({
-        mutationFn: async ({ id, status }: { id: number; status: string }) => {
-            const { error } = await supabase
-                .from('storage_units')
-                .update({ status })
-                .eq('id', id)
+  useRealtimeChannel("units-realtime", [
+    {
+      event: "*",
+      schema: "public",
+      table: "storage_units",
+      callback: () => queryClient.invalidateQueries({ queryKey: ["units"] }),
+    },
+  ]);
 
-            if (error) throw error
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['units'] })
-        },
-    })
+  const updateStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      const { error } = await supabase
+        .from("storage_units")
+        .update({ status })
+        .eq("id", id);
 
-    const addUnit = useMutation({
-        mutationFn: async (newUnit: UnitInput) => {
-            const { error } = await supabase
-                .from('storage_units')
-                .insert([newUnit])
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["units"] });
+    },
+  });
 
-            if (error) throw error
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['units'] })
-        },
-    })
+  const addUnit = useMutation({
+    mutationFn: async (newUnit: UnitInput) => {
+      const { error } = await supabase.from("storage_units").insert([newUnit]);
 
-    const updateUnit = useMutation({
-        mutationFn: async ({ id, updates }: { id: number; updates: Partial<Unit> }) => {
-            const { error } = await supabase
-                .from('storage_units')
-                .update(updates)
-                .eq('id', id)
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["units"] });
+    },
+  });
 
-            if (error) throw error
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['units'] })
-        },
-    })
+  const updateUnit = useMutation({
+    mutationFn: async ({
+      id,
+      updates,
+    }: {
+      id: number;
+      updates: Partial<Unit>;
+    }) => {
+      const { error } = await supabase
+        .from("storage_units")
+        .update(updates)
+        .eq("id", id);
 
-    const deleteUnit = useMutation({
-        mutationFn: async (id: number) => {
-            const { error } = await supabase
-                .from('storage_units')
-                .delete()
-                .eq('id', id)
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["units"] });
+    },
+  });
 
-            if (error) throw error
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['units'] })
-        },
-    })
+  const deleteUnit = useMutation({
+    mutationFn: async (id: number) => {
+      const { error } = await supabase
+        .from("storage_units")
+        .delete()
+        .eq("id", id);
 
-    return { units, isLoading, error, updateStatus, addUnit, updateUnit, deleteUnit }
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["units"] });
+    },
+  });
+
+  return {
+    units,
+    isLoading,
+    error,
+    updateStatus,
+    addUnit,
+    updateUnit,
+    deleteUnit,
+  };
 }
