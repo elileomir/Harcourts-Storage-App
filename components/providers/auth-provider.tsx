@@ -124,14 +124,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // NOTE: No navigation needed - query invalidation is sufficient
         } else if (event === "SIGNED_IN") {
           console.log(
-            "[AuthProvider] Signed in, invalidating queries and refreshing"
+            "[AuthProvider] Signed in, invalidating queries and navigating"
           );
           // Invalidate queries to load fresh data
           queryClient.invalidateQueries();
-          // Use client-side navigation to current path to force re-render
-          // This avoids SSR (no hydration error) but ensures page re-renders
-          const currentPath = window.location.pathname + window.location.search;
-          router.push(currentPath);
+
+          // Check if we're on an auth page
+          const authPages = ["/login", "/set-password", "/auth/callback"];
+          const isOnAuthPage = authPages.some((page) =>
+            window.location.pathname.startsWith(page)
+          );
+
+          if (isOnAuthPage) {
+            // Navigate to dashboard after successful login
+            console.log(
+              "[AuthProvider] On auth page, redirecting to dashboard"
+            );
+            router.push("/dashboard");
+          } else {
+            // Use client-side navigation to current path to force re-render
+            // This avoids SSR (no hydration error) but ensures page re-renders
+            const currentPath =
+              window.location.pathname + window.location.search;
+            console.log("[AuthProvider] Refreshing current page:", currentPath);
+            router.push(currentPath);
+          }
         }
       }
     });
