@@ -103,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!isOnAuthPage) {
           console.log("[AuthProvider] User signed out, redirecting to login");
           router.push("/login");
-          router.refresh();
+          // NOTE: Removed router.refresh() to prevent hydration errors
         }
       }
 
@@ -111,27 +111,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (event === "USER_UPDATED") {
         console.log("[AuthProvider] User updated (password set)");
         // Don't refresh here - let the set-password page handle redirect
-        // router.refresh() was causing page reload and interrupting redirect logic
       }
 
       // Handle initial sign-in or successful token refresh
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         console.log("[AuthProvider] Session refreshed/established");
 
-        // Force re-authentication of all Supabase clients
-        // This ensures real-time channels use the new token
         if (event === "TOKEN_REFRESHED" && session) {
           console.log("[AuthProvider] Token refreshed, invalidating queries");
           // Invalidate all queries to force refetch with new token
           queryClient.invalidateQueries();
-
-          // NOTE: We do NOT call router.refresh() here because it can cause
-          // race conditions with user navigation and "loading" hangs if the
-          // refresh happens while the user is trying to click a link.
-          // The next navigation will naturally pick up the new cookie.
+          // NOTE: Removed router.refresh() to prevent hydration errors (#418)
         } else if (event === "SIGNED_IN") {
-          console.log("[AuthProvider] Signed in, refreshing router");
-          router.refresh();
+          console.log("[AuthProvider] Signed in, invalidating queries");
+          // Invalidate queries to load fresh data
+          queryClient.invalidateQueries();
+          // NOTE: Removed router.refresh() to prevent hydration errors (#418)
         }
       }
     });
@@ -139,7 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [router, queryClient]); // supabase is stable
+  }, [router, queryClient, supabase]);
 
   const signOut = async () => {
     try {
