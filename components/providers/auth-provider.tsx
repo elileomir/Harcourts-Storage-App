@@ -102,8 +102,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (!isOnAuthPage) {
           console.log("[AuthProvider] User signed out, redirecting to login");
-          router.push("/login");
-          // NOTE: Removed router.refresh() to prevent hydration errors
+          // Use window.location for full reload to avoid hydration issues
+          window.location.href = "/login";
         }
       }
 
@@ -121,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log("[AuthProvider] Token refreshed, invalidating queries");
           // Invalidate all queries to force refetch with new token
           queryClient.invalidateQueries();
-          // NOTE: No navigation needed - query invalidation is sufficient
+          // NOTE: No navigation needed for token refresh
         } else if (event === "SIGNED_IN") {
           console.log(
             "[AuthProvider] Signed in, invalidating queries and navigating"
@@ -137,17 +137,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           if (isOnAuthPage) {
             // Navigate to dashboard after successful login
+            // Use window.location for full reload to completely avoid hydration errors
             console.log(
               "[AuthProvider] On auth page, redirecting to dashboard"
             );
-            router.push("/dashboard");
+            window.location.href = "/dashboard";
           } else {
-            // Use client-side navigation to current path to force re-render
-            // This avoids SSR (no hydration error) but ensures page re-renders
-            const currentPath =
-              window.location.pathname + window.location.search;
-            console.log("[AuthProvider] Refreshing current page:", currentPath);
-            router.push(currentPath);
+            // Already on a dashboard page after idle - force full reload
+            // This ensures fresh server state without hydration mismatch
+            console.log("[AuthProvider] Reloading current page");
+            window.location.reload();
           }
         }
       }
