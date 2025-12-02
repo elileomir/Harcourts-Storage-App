@@ -75,20 +75,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // ⚠️ CRITICAL: Handle reload FIRST, before any other logic
-      if (event === "SIGNED_IN") {
-        const path = window.location.pathname;
-        if (
-          !path.startsWith("/login") &&
-          !path.startsWith("/set-password") &&
-          !path.startsWith("/auth/callback")
-        ) {
-          console.log(`[Auth] SIGNED_IN on ${path} - RELOADING NOW`);
-          window.location.reload();
-          return; // Stop all further execution
-        }
-      }
-
       console.log("[AuthProvider] Auth state change:", event);
 
       setSession(session);
@@ -127,33 +113,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Don't refresh here - let the set-password page handle redirect
       }
 
-      // Handle initial sign-in or successful token refresh
+      // Handle sign-in - ONLY redirect from auth pages to dashboard
+      // DO NOT reload on app pages - let React Query and middleware handle freshness
       if (event === "SIGNED_IN") {
-        console.log("[AuthProvider] ⚡ SIGNED_IN event detected");
-
-        // Check if we're on an auth page
         const authPages = ["/login", "/set-password", "/auth/callback"];
         const isOnAuthPage = authPages.some((page) =>
           window.location.pathname.startsWith(page)
         );
 
         if (isOnAuthPage) {
-          // Navigate to dashboard after successful login
           console.log(
-            "[AuthProvider] 🔄 On auth page, redirecting to dashboard"
+            "[AuthProvider] Login successful, redirecting to dashboard"
           );
           window.location.href = "/dashboard";
         } else {
-          // Already on app page - ALWAYS reload to ensure fresh state
-          console.log("[AuthProvider] 🔄 On app page, forcing reload NOW");
-          window.location.reload();
-          return; // Stop further execution
+          console.log(
+            "[AuthProvider] SIGNED_IN on app page - no action needed (middleware handles session)"
+          );
         }
       }
 
-      // Handle token refresh separately - just invalidate queries
-      if (event === "TOKEN_REFRESHED" && session) {
-        console.log("[AuthProvider] 🔄 Token refreshed, invalidating queries");
+      // Handle token refresh - invalidate queries to refetch with new token
+      if (event === "TOKEN_REFRESHED") {
+        console.log("[AuthProvider] Token refreshed, invalidating all queries");
         queryClient.invalidateQueries();
       }
     });
