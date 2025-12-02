@@ -121,11 +121,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log("[AuthProvider] Token refreshed, invalidating queries");
           // Invalidate all queries to force refetch with new token
           queryClient.invalidateQueries();
-          // NOTE: No navigation needed for token refresh
+          // NOTE: No navigation/reload - PageVisibilityProvider handles idle reload
         } else if (event === "SIGNED_IN") {
-          console.log(
-            "[AuthProvider] Signed in, invalidating queries and navigating"
-          );
+          console.log("[AuthProvider] Signed in, invalidating queries");
           // Invalidate queries to load fresh data
           queryClient.invalidateQueries();
 
@@ -137,17 +135,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           if (isOnAuthPage) {
             // Navigate to dashboard after successful login
-            // Use window.location for full reload to completely avoid hydration errors
             console.log(
               "[AuthProvider] On auth page, redirecting to dashboard"
             );
             window.location.href = "/dashboard";
-          } else {
-            // Already on a dashboard page after idle - force full reload
-            // This ensures fresh server state without hydration mismatch
-            console.log("[AuthProvider] Reloading current page");
-            window.location.reload();
           }
+          // NOTE: If already on dashboard, no action needed
+          // PageVisibilityProvider will handle reload after extended idle
         }
       }
     });
