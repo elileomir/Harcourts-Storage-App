@@ -49,8 +49,9 @@ export type CallLog = {
   competitor_mention: string;
   requested_move_in_window: string;
   transcript_summary: string | null;
-  transcript_full: TranscriptItem[] | null;
+  transcript_full?: TranscriptItem[] | null; // Optional - not loaded by default due to size
   evaluation_rationale: EvaluationRationale | null;
+  created_at?: string; // Optional - added for sorting
 };
 
 export function useAnalytics() {
@@ -70,7 +71,9 @@ export function useAnalytics() {
       try {
         const { data, error } = await supabase
           .from("call_analytics")
-          .select("*")
+          .select(
+            "call_id, agent_id, start_time, end_time, duration_seconds, cost_credits, handoff_success, brand_alignment, compliance_check, csat_score, lead_quality_score, primary_churn_reason, competitor_mention, requested_move_in_window, transcript_summary, evaluation_rationale, created_at"
+          )
           .order("start_time", { ascending: false })
           .abortSignal(controller.signal);
 
