@@ -114,40 +114,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Handle initial sign-in or successful token refresh
-      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-        console.log("[AuthProvider] Session refreshed/established");
+      if (event === "SIGNED_IN") {
+        console.log("[AuthProvider] ⚡ SIGNED_IN event detected");
 
-        if (event === "TOKEN_REFRESHED" && session) {
-          console.log("[AuthProvider] Token refreshed, invalidating queries");
-          // Invalidate all queries to force refetch with new token
-          queryClient.invalidateQueries();
-          // No reload needed for token refresh - middleware already updated cookies
-        } else if (event === "SIGNED_IN") {
-          console.log("[AuthProvider] Signed in, invalidating queries");
+        // Check if we're on an auth page
+        const authPages = ["/login", "/set-password", "/auth/callback"];
+        const isOnAuthPage = authPages.some((page) =>
+          window.location.pathname.startsWith(page)
+        );
 
-          // Check if we're on an auth page
-          const authPages = ["/login", "/set-password", "/auth/callback"];
-          const isOnAuthPage = authPages.some((page) =>
-            window.location.pathname.startsWith(page)
+        if (isOnAuthPage) {
+          // Navigate to dashboard after successful login
+          console.log(
+            "[AuthProvider] 🔄 On auth page, redirecting to dashboard"
           );
-
-          if (isOnAuthPage) {
-            // Navigate to dashboard after successful login
-            console.log(
-              "[AuthProvider] On auth page, redirecting to dashboard"
-            );
-            window.location.href = "/dashboard";
-          } else {
-            // Already on any app page (dashboard, units, bookings, analytics, etc.)
-            // Reload to ensure clean state after idle period
-            // This prevents navigation getting stuck when user clicks to new page
-            // during/after session refresh
-            console.log(
-              "[AuthProvider] On app page, reloading for fresh state"
-            );
-            window.location.reload();
-          }
+          window.location.href = "/dashboard";
+        } else {
+          // Already on app page - ALWAYS reload to ensure fresh state
+          console.log("[AuthProvider] 🔄 On app page, forcing reload NOW");
+          window.location.reload();
+          return; // Stop further execution
         }
+      }
+
+      // Handle token refresh separately - just invalidate queries
+      if (event === "TOKEN_REFRESHED" && session) {
+        console.log("[AuthProvider] 🔄 Token refreshed, invalidating queries");
+        queryClient.invalidateQueries();
       }
     });
 
