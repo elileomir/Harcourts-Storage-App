@@ -75,6 +75,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // ⚠️ CRITICAL: Handle reload FIRST, before any other logic
+      if (event === "SIGNED_IN") {
+        const path = window.location.pathname;
+        if (
+          !path.startsWith("/login") &&
+          !path.startsWith("/set-password") &&
+          !path.startsWith("/auth/callback")
+        ) {
+          console.log(`[Auth] SIGNED_IN on ${path} - RELOADING NOW`);
+          window.location.reload();
+          return; // Stop all further execution
+        }
+      }
+
       console.log("[AuthProvider] Auth state change:", event);
 
       setSession(session);
