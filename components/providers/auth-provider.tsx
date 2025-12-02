@@ -121,11 +121,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log("[AuthProvider] Token refreshed, invalidating queries");
           // Invalidate all queries to force refetch with new token
           queryClient.invalidateQueries();
-          // NOTE: No navigation/reload - PageVisibilityProvider handles idle reload
+          // No reload needed for token refresh - middleware already updated cookies
         } else if (event === "SIGNED_IN") {
           console.log("[AuthProvider] Signed in, invalidating queries");
-          // Invalidate queries to load fresh data
-          queryClient.invalidateQueries();
 
           // Check if we're on an auth page
           const authPages = ["/login", "/set-password", "/auth/callback"];
@@ -139,9 +137,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               "[AuthProvider] On auth page, redirecting to dashboard"
             );
             window.location.href = "/dashboard";
+          } else {
+            // Already on any app page (dashboard, units, bookings, analytics, etc.)
+            // Reload to ensure clean state after idle period
+            // This prevents navigation getting stuck when user clicks to new page
+            // during/after session refresh
+            console.log(
+              "[AuthProvider] On app page, reloading for fresh state"
+            );
+            window.location.reload();
           }
-          // NOTE: If already on dashboard, no action needed
-          // PageVisibilityProvider will handle reload after extended idle
         }
       }
     });
