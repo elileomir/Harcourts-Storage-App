@@ -65,7 +65,7 @@ export function useAnalytics() {
     queryKey: ["analytics"],
     queryFn: async () => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout for large datasets
 
       try {
         const { data, error } = await supabase
