@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-query";
 import { useState } from "react";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { PageVisibilityProvider } from "@/components/providers/page-visibility-provider";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -79,7 +80,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>{children}</AuthProvider>
+      <AuthProvider>
+        <PageVisibilityProvider>{children}</PageVisibilityProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
