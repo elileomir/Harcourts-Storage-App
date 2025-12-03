@@ -49,7 +49,7 @@ export type CallLog = {
   competitor_mention: string;
   requested_move_in_window: string;
   transcript_summary: string | null;
-  transcript_full?: TranscriptItem[] | null; // Optional - not loaded by default due to size
+  transcript_full: TranscriptItem[] | null; // Optional - not loaded by default due to size
   evaluation_rationale: EvaluationRationale | null;
   created_at?: string; // Optional - added for sorting
 };
@@ -66,14 +66,12 @@ export function useAnalytics() {
     queryKey: ["analytics"],
     queryFn: async () => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout for large datasets
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout to allow transcript_full loading
 
       try {
         const { data, error } = await supabase
           .from("call_analytics")
-          .select(
-            "call_id, agent_id, start_time, end_time, duration_seconds, cost_credits, handoff_success, brand_alignment, compliance_check, csat_score, lead_quality_score, primary_churn_reason, competitor_mention, requested_move_in_window, transcript_summary, evaluation_rationale, created_at"
-          )
+          .select("*") // Get all columns including transcript_full
           .order("start_time", { ascending: false })
           .abortSignal(controller.signal);
 
