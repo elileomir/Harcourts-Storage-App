@@ -23,29 +23,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true);
   const router = useRouter();
   const supabase = createClient();
 
-  // Check if user is already authenticated on mount
-  useEffect(() => {
-    const checkSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session) {
-        // User is already signed in, redirect to dashboard
-        console.log(
-          "[LoginPage] Already authenticated, redirecting to dashboard"
-        );
-        window.location.href = "/dashboard";
-      } else {
-        setCheckingAuth(false);
-      }
-    };
-
-    checkSession();
-  }, [supabase]);
+  // AuthProvider handles redirecting authenticated users to dashboard
+  // No need for duplicate logic here
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,15 +51,6 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
-
-  // Show loading while checking authentication
-  if (checkingAuth) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/50">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/50 p-4">
