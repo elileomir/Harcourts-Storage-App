@@ -36,7 +36,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Fetch profile to get role with retry logic
+          // Always fetch profile to ensure we have the latest role (DB is source of truth)
+          console.log("[AuthProvider] Fetching role from profiles...");
           let retries = 3;
           while (retries > 0) {
             const { data: profile, error } = await supabase
@@ -45,17 +46,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               .eq("id", session.user.id)
               .single();
 
+            if (error) {
+              console.error("[AuthProvider] Error fetching profile:", error);
+            } else {
+              console.log("[AuthProvider] Profile fetched:", profile);
+            }
+
             if (!error && profile) {
+              console.log(
+                "[AuthProvider] Setting role from profile:",
+                profile.role
+              );
               setRole(profile.role ?? "user");
               break;
             }
 
             retries--;
             if (retries > 0) {
+              console.log(
+                `[AuthProvider] Retrying profile fetch... (${retries} attempts left)`
+              );
               await new Promise((resolve) => setTimeout(resolve, 1000));
             } else {
-              // Fallback to user metadata or default
-              setRole(session.user.user_metadata?.role ?? "user");
+              console.warn(
+                "Failed to fetch profile role after 3 retries, defaulting to user."
+              );
+              setRole("user");
             }
           }
         } else {
@@ -81,14 +97,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        // Fetch profile to get role
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", session.user.id)
-          .single();
+        // Use metadata role if available to avoid RLS recursion issues
+        const metadataRole = session.user.user_metadata?.role;
 
-        setRole(profile?.role ?? session.user.user_metadata?.role ?? "user");
+        if (metadataRole) {
+          setRole(metadataRole);
+        } else {
+          // Fallback to fetching profile if no metadata role
+          console.log(
+            "[AuthProvider] No metadata role, fetching from profiles..."
+          );
+          let retries = 3;
+          while (retries > 0) {
+            const { data: profile, error } = await supabase
+              .from("profiles")
+              .select("role")
+              .eq("id", session.user.id)
+              .single();
+
+            if (error) {
+              console.error("[AuthProvider] Error fetching profile:", error);
+            } else {
+              console.log("[AuthProvider] Profile fetched:", profile);
+            }
+
+            if (!error && profile) {
+              console.log(
+                "[AuthProvider] Setting role from profile:",
+                profile.role
+              );
+              setRole(profile.role ?? "user");
+              break;
+            }
+
+            retries--;
+            if (retries > 0) {
+              console.log(
+                `[AuthProvider] Retrying profile fetch... (${retries} attempts left)`
+              );
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+            } else {
+              console.warn(
+                "Failed to fetch profile role after 3 retries, defaulting to user."
+              );
+              setRole("user");
+            }
+          }
+        }
       } else {
         setRole(null);
       }
@@ -123,12 +178,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (isOnAuthPage) {
           console.log(
-            "[AuthProvider] Login successful, redirecting to dashboard"
+            "[AuthProvider] Login successful, redirecting to dashboard. Path:",
+            window.location.pathname
           );
           window.location.href = "/dashboard";
         } else {
           console.log(
-            "[AuthProvider] SIGNED_IN on app page - no action needed (middleware handles session)"
+            "[AuthProvider] SIGNED_IN on app page - no action needed. Path:",
+            window.location.pathname
           );
         }
       }

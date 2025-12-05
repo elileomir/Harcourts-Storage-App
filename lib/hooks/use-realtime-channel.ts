@@ -76,7 +76,8 @@ export function useRealtimeChannel(
         channel = channel.on(
           "postgres_changes" as unknown as "system",
           { event, schema, table } as unknown as Record<string, never>,
-          callback as () => void
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          callback as any
         );
       });
 
@@ -143,7 +144,7 @@ export function useRealtimeChannel(
     // Listen for auth state changes to trigger reconnection
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         console.log(`[${channelName}] Auth event: ${event}, reconnecting...`);
         setupChannel();

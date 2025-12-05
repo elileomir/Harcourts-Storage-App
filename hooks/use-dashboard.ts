@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -596,10 +595,6 @@ export function useDashboard(filters: DashboardFilters = {}) {
             return format(parseISO(call.start_time), "MMM dd") === day.date;
           });
 
-          const llmCredits = dateCalls.reduce(
-            (sum: number, call: CallAnalytics) => sum + (call.llm_charge || 0),
-            0
-          );
           const voiceCredits = dateCalls.reduce(
             (sum: number, call: CallAnalytics) => sum + (call.call_charge || 0),
             0

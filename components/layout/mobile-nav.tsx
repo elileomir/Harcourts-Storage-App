@@ -10,10 +10,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import { Sidebar } from "./sidebar";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>

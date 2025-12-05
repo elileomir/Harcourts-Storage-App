@@ -1,7 +1,7 @@
-import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useRealtimeChannel } from "@/lib/hooks/use-realtime-channel";
+import { triggerAvailabilityWebhook } from "@/lib/webhook-utils";
 
 export type Unit = {
   id: number;
@@ -35,6 +35,8 @@ export function useUnits() {
         const { data, error } = await supabase
           .from("storage_units")
           .select("*, bookings(*)")
+          .order("facility", { ascending: true })
+          .order("unit_number", { ascending: true })
           .abortSignal(controller.signal);
 
         if (error) throw error;
@@ -57,10 +59,63 @@ export function useUnits() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      // First, get the unit to know its facility
+      const { data: unit, error: fetchError } = await supabase
+        .from("storage_units")
+        .select("facility")
+        .eq("id", id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
       const { error } = await supabase
         .from("storage_units")
         .update({ status })
         .eq("id", id);
+
+      if (error) throw error;
+
+      if (status === "Available" && unit) {
+        await triggerAvailabilityWebhook([unit.facility]);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["units"] });
+    },
+  });
+
+  const updateUnitsStatus = useMutation({
+    mutationFn: async ({
+      ids,
+      status,
+      facilities,
+    }: {
+      ids: number[];
+      status: string;
+      facilities?: string[];
+    }) => {
+      const { error } = await supabase
+        .from("storage_units")
+        .update({ status })
+        .in("id", ids);
+
+      if (error) throw error;
+
+      if (status === "Available" && facilities && facilities.length > 0) {
+        await triggerAvailabilityWebhook(facilities);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["units"] });
+    },
+  });
+
+  const deleteUnits = useMutation({
+    mutationFn: async (ids: number[]) => {
+      const { error } = await supabase
+        .from("storage_units")
+        .delete()
+        .in("id", ids);
 
       if (error) throw error;
     },
@@ -74,6 +129,10 @@ export function useUnits() {
       const { error } = await supabase.from("storage_units").insert([newUnit]);
 
       if (error) throw error;
+
+      if (newUnit.status === "Available") {
+        await triggerAvailabilityWebhook([newUnit.facility]);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["units"] });
@@ -94,6 +153,22 @@ export function useUnits() {
         .eq("id", id);
 
       if (error) throw error;
+
+      if (updates.status === "Available") {
+        let facility = updates.facility;
+        if (!facility) {
+          const { data: unit } = await supabase
+            .from("storage_units")
+            .select("facility")
+            .eq("id", id)
+            .single();
+          facility = unit?.facility;
+        }
+
+        if (facility) {
+          await triggerAvailabilityWebhook([facility]);
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["units"] });
@@ -119,6 +194,8 @@ export function useUnits() {
     isLoading,
     error,
     updateStatus,
+    updateUnitsStatus,
+    deleteUnits,
     addUnit,
     updateUnit,
     deleteUnit,

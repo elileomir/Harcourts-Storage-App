@@ -113,6 +113,7 @@ export default function CallbackRequestsPage() {
             <CallbackRequestsTable
               requests={callbackRequests}
               onStatusUpdate={(id, status) => updateStatus({ id, status })}
+              onUpdateNotes={(id, notes) => updateStatus({ id, notes })}
             />
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center">

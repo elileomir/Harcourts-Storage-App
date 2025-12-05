@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useRealtimeChannel } from "@/lib/hooks/use-realtime-channel";
@@ -111,6 +110,31 @@ export function useBookings() {
     },
   });
 
+  const updateBookingsStatus = useMutation({
+    mutationFn: async ({ ids, status }: { ids: number[]; status: string }) => {
+      const { error } = await supabase
+        .from("bookings")
+        .update({ status })
+        .in("id", ids);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    },
+  });
+
+  const deleteBookings = useMutation({
+    mutationFn: async (ids: number[]) => {
+      const { error } = await supabase.from("bookings").delete().in("id", ids);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    },
+  });
+
   return {
     bookings,
     isLoading,
@@ -118,5 +142,7 @@ export function useBookings() {
     updateStatus,
     updateBooking,
     deleteBooking,
+    updateBookingsStatus,
+    deleteBookings,
   };
 }

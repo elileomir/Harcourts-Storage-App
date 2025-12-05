@@ -7,6 +7,7 @@ import {
   Mail,
   Phone,
   Calendar,
+  Trash2,
 } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
@@ -35,7 +36,12 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Booking } from "@/hooks/use-bookings";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Booking, useBookings } from "@/hooks/use-bookings";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { exportToExcel } from "@/lib/excel-utils";
+import { FileDown } from "lucide-react";
+import { toast } from "sonner";
 
 interface BookingsTableProps {
   bookings: Booking[];
@@ -55,7 +61,11 @@ export function BookingsTable({
   const highlightId = searchParams.get("bookingId");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedBookingIds, setSelectedBookingIds] = useState<number[]>([]);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const rowRefs = useRef<Record<number, HTMLTableRowElement | null>>({});
+
+  const { updateBookingsStatus, deleteBookings } = useBookings();
 
   useEffect(() => {
     if (highlightId && rowRefs.current[Number(highlightId)]) {
@@ -83,6 +93,41 @@ export function BookingsTable({
 
     return matchesSearch && matchesStatus;
   });
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedBookingIds(filteredBookings.map((b) => b.id));
+    } else {
+      setSelectedBookingIds([]);
+    }
+  };
+
+  const handleSelectBooking = (bookingId: number, checked: boolean) => {
+    if (checked) {
+      setSelectedBookingIds((prev) => [...prev, bookingId]);
+    } else {
+      setSelectedBookingIds((prev) => prev.filter((id) => id !== bookingId));
+    }
+  };
+
+  const handleBulkStatusUpdate = (status: string) => {
+    if (selectedBookingIds.length === 0) return;
+
+    updateBookingsStatus.mutate(
+      { ids: selectedBookingIds, status },
+      {
+        onSuccess: () => {
+          toast.success(
+            `Updated ${selectedBookingIds.length} bookings to ${status}`
+          );
+          setSelectedBookingIds([]);
+        },
+        onError: (error) => {
+          toast.error(`Failed to update bookings: ${error.message}`);
+        },
+      }
+    );
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -120,28 +165,112 @@ export function BookingsTable({
             className="h-8"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px] h-8">
-            <div className="flex items-center gap-2">
-              <Filter className="h-3 w-3" />
-              <SelectValue placeholder="Filter by status" />
+        <div className="flex items-center gap-2">
+          {selectedBookingIds.length > 0 && (
+            <div className="flex items-center gap-2 mr-2 animate-in fade-in slide-in-from-right-4">
+              <span className="text-sm text-muted-foreground mr-2">
+                {selectedBookingIds.length} selected
+              </span>
+              <Select onValueChange={handleBulkStatusUpdate}>
+                <SelectTrigger className="w-[160px] h-8 border-dashed border-primary text-primary">
+                  <SelectValue placeholder="Bulk Update Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Pending">Mark Pending</SelectItem>
+                  <SelectItem value="Approved">Mark Approved</SelectItem>
+                  <SelectItem value="Active">Mark Active</SelectItem>
+                  <SelectItem value="Completed">Mark Completed</SelectItem>
+                  <SelectItem value="Cancelled">Mark Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setShowBulkDeleteDialog(true)}
+                className="h-8 px-2"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedBookingIds([])}
+                className="h-8 px-2 text-muted-foreground hover:text-foreground"
+              >
+                Clear
+              </Button>
             </div>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="Pending">Pending</SelectItem>
-            <SelectItem value="Approved">Approved</SelectItem>
-            <SelectItem value="Active">Active</SelectItem>
-            <SelectItem value="Completed">Completed</SelectItem>
-            <SelectItem value="Cancelled">Cancelled</SelectItem>
-          </SelectContent>
-        </Select>
+          )}
+          <div className="h-4 w-px bg-border mx-2" />
+          <ConfirmationDialog
+            open={showBulkDeleteDialog}
+            onOpenChange={setShowBulkDeleteDialog}
+            onConfirm={() => {
+              deleteBookings.mutate(selectedBookingIds, {
+                onSuccess: () => {
+                  toast.success(
+                    `Deleted ${selectedBookingIds.length} bookings`
+                  );
+                  setSelectedBookingIds([]);
+                },
+                onError: (error) => {
+                  toast.error(`Failed to delete bookings: ${error.message}`);
+                },
+              });
+            }}
+            title="Delete Bookings"
+            description={`Are you sure you want to delete ${selectedBookingIds.length} bookings? This action cannot be undone.`}
+            confirmText="Delete"
+            variant="danger"
+          />
+          <div className="h-4 w-px bg-border mx-2" />
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px] h-8">
+              <div className="flex items-center gap-2">
+                <Filter className="h-3 w-3" />
+                <SelectValue placeholder="Filter by status" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="Pending">Pending</SelectItem>
+              <SelectItem value="Approved">Approved</SelectItem>
+              <SelectItem value="Active">Active</SelectItem>
+              <SelectItem value="Ending">Ending</SelectItem>
+              <SelectItem value="Completed">Completed</SelectItem>
+              <SelectItem value="Cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="h-4 w-px bg-border mx-2" />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => exportToExcel(bookings, "Bookings", "Bookings")}
+            className="h-8 px-2 text-muted-foreground hover:text-foreground border-dashed"
+          >
+            <FileDown className="mr-2 h-4 w-4" />
+            Export
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-md border bg-white shadow-sm overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[40px]">
+                <Checkbox
+                  checked={
+                    filteredBookings.length > 0 &&
+                    selectedBookingIds.length === filteredBookings.length
+                  }
+                  onCheckedChange={(checked) =>
+                    handleSelectAll(checked as boolean)
+                  }
+                  aria-label="Select all"
+                />
+              </TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Unit</TableHead>
               <TableHead>Status</TableHead>
@@ -153,7 +282,7 @@ export function BookingsTable({
             {filteredBookings.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No bookings found matching your criteria.
@@ -166,8 +295,19 @@ export function BookingsTable({
                   ref={(el) => {
                     rowRefs.current[booking.id] = el;
                   }}
-                  className="transition-colors duration-500"
+                  className={`transition-colors duration-500 ${
+                    selectedBookingIds.includes(booking.id) ? "bg-muted/50" : ""
+                  }`}
                 >
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedBookingIds.includes(booking.id)}
+                      onCheckedChange={(checked) =>
+                        handleSelectBooking(booking.id, checked as boolean)
+                      }
+                      aria-label={`Select booking for ${booking.customer_name}`}
+                    />
+                  </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
                       <span className="font-medium">

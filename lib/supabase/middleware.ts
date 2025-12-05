@@ -36,8 +36,12 @@ export async function updateSession(request: NextRequest) {
   // Extract user from session
   const user = session?.user;
 
-  // Redirect authenticated users from root to dashboard
-  if (user && request.nextUrl.pathname === "/") {
+  // Redirect authenticated users from root or login to dashboard
+  if (
+    user &&
+    (request.nextUrl.pathname === "/" ||
+      request.nextUrl.pathname.startsWith("/login"))
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);

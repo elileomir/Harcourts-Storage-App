@@ -6,7 +6,10 @@ import {
   Calendar,
   Clock,
   AlertCircle,
+  Trash2,
+  FileDown,
 } from "lucide-react";
+import { exportToExcel } from "@/lib/excel-utils";
 import {
   Table,
   TableBody,
@@ -18,6 +21,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -25,18 +29,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CallbackRequest } from "@/hooks/use-callback-requests";
+import {
+  CallbackRequest,
+  useCallbackRequests,
+} from "@/hooks/use-callback-requests";
 import { format } from "date-fns";
 import { CallbackDetailDrawer } from "./callback-detail-drawer";
+
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 interface CallbackRequestsTableProps {
   requests: CallbackRequest[];
   onStatusUpdate: (id: string, status: CallbackRequest["status"]) => void;
+  onUpdateNotes: (id: string, notes: string) => void;
 }
 
 export function CallbackRequestsTable({
   requests,
   onStatusUpdate,
+  onUpdateNotes,
 }: CallbackRequestsTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [importanceFilter, setImportanceFilter] = useState("all");
@@ -44,6 +55,10 @@ export function CallbackRequestsTable({
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(
     null
   );
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
+  const { updateCallbackRequestsStatus, deleteCallbackRequests } =
+    useCallbackRequests();
 
   const filteredRequests = requests.filter((request) => {
     const matchesSearch =
@@ -58,6 +73,35 @@ export function CallbackRequestsTable({
 
     return matchesSearch && matchesImportance && matchesStatus;
   });
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedRequestIds(filteredRequests.map((r) => r.id));
+    } else {
+      setSelectedRequestIds([]);
+    }
+  };
+
+  const handleSelectRequest = (requestId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedRequestIds((prev) => [...prev, requestId]);
+    } else {
+      setSelectedRequestIds((prev) => prev.filter((id) => id !== requestId));
+    }
+  };
+
+  const handleBulkStatusUpdate = (status: string) => {
+    if (selectedRequestIds.length === 0) return;
+
+    updateCallbackRequestsStatus.mutate(
+      { ids: selectedRequestIds, status: status as CallbackRequest["status"] },
+      {
+        onSuccess: () => {
+          setSelectedRequestIds([]);
+        },
+      }
+    );
+  };
 
   const selectedRequest =
     requests.find((r) => r.id === selectedRequestId) || null;
@@ -104,6 +148,56 @@ export function CallbackRequestsTable({
             />
           </div>
           <div className="flex items-center gap-2">
+            {selectedRequestIds.length > 0 && (
+              <div className="flex items-center gap-2 mr-2 animate-in fade-in slide-in-from-right-4">
+                <span className="text-sm text-muted-foreground mr-2">
+                  {selectedRequestIds.length} selected
+                </span>
+                <Select onValueChange={handleBulkStatusUpdate}>
+                  <SelectTrigger className="w-[160px] h-8 border-dashed border-primary text-primary">
+                    <SelectValue placeholder="Bulk Update Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Pending">Mark Pending</SelectItem>
+                    <SelectItem value="Contacted">Mark Contacted</SelectItem>
+                    <SelectItem value="Completed">Mark Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowBulkDeleteDialog(true)}
+                  className="h-8 px-2"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedRequestIds([])}
+                  className="h-8 px-2 text-muted-foreground hover:text-foreground"
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
+            <div className="h-4 w-px bg-border mx-2" />
+            <ConfirmationDialog
+              open={showBulkDeleteDialog}
+              onOpenChange={setShowBulkDeleteDialog}
+              onConfirm={() => {
+                deleteCallbackRequests.mutate(selectedRequestIds, {
+                  onSuccess: () => {
+                    setSelectedRequestIds([]);
+                  },
+                });
+              }}
+              title="Delete Callback Requests"
+              description={`Are you sure you want to delete ${selectedRequestIds.length} requests? This action cannot be undone.`}
+              confirmText="Delete"
+              variant="danger"
+            />
             <Select
               value={importanceFilter}
               onValueChange={setImportanceFilter}
@@ -135,6 +229,18 @@ export function CallbackRequestsTable({
                 <SelectItem value="Completed">Completed</SelectItem>
               </SelectContent>
             </Select>
+            <div className="h-4 w-px bg-border mx-2" />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                exportToExcel(requests, "CallbackRequests", "CallbackRequests")
+              }
+              className="h-8 px-2 text-muted-foreground hover:text-foreground border-dashed"
+            >
+              <FileDown className="mr-2 h-4 w-4" />
+              Export
+            </Button>
           </div>
         </div>
 
@@ -142,6 +248,18 @@ export function CallbackRequestsTable({
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[40px]">
+                  <Checkbox
+                    checked={
+                      filteredRequests.length > 0 &&
+                      selectedRequestIds.length === filteredRequests.length
+                    }
+                    onCheckedChange={(checked) =>
+                      handleSelectAll(checked as boolean)
+                    }
+                    aria-label="Select all"
+                  />
+                </TableHead>
                 <TableHead>Contact</TableHead>
                 <TableHead>Subject</TableHead>
                 <TableHead>Importance</TableHead>
@@ -155,7 +273,7 @@ export function CallbackRequestsTable({
               {filteredRequests.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={8}
                     className="h-24 text-center text-muted-foreground"
                   >
                     No callback requests found.
@@ -169,7 +287,23 @@ export function CallbackRequestsTable({
                       request.status?.slice(1).toLowerCase() || "Pending";
 
                   return (
-                    <TableRow key={request.id}>
+                    <TableRow
+                      key={request.id}
+                      className={`transition-colors duration-500 ${
+                        selectedRequestIds.includes(request.id)
+                          ? "bg-muted/50"
+                          : ""
+                      }`}
+                    >
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedRequestIds.includes(request.id)}
+                          onCheckedChange={(checked) =>
+                            handleSelectRequest(request.id, checked as boolean)
+                          }
+                          aria-label={`Select request for ${request.full_name}`}
+                        />
+                      </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
                           <span className="font-medium">
@@ -258,9 +392,10 @@ export function CallbackRequestsTable({
       {selectedRequest && (
         <CallbackDetailDrawer
           request={selectedRequest}
-          isOpen={!!selectedRequest}
-          onClose={() => setSelectedRequestId(null)}
+          open={!!selectedRequest}
+          onOpenChange={(open) => !open && setSelectedRequestId(null)}
           onStatusUpdate={onStatusUpdate}
+          onUpdateNotes={onUpdateNotes}
         />
       )}
     </>

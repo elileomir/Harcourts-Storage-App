@@ -14,13 +14,14 @@ export type CallbackRequest = {
   importance: "Low" | "Medium" | "High";
   helpful_insights: string;
   status: "Pending" | "Contacted" | "Completed";
+  notes: string | null;
   created_at: string;
   updated_at: string;
 };
 
 export type CallbackRequestInput = Omit<
   CallbackRequest,
-  "id" | "created_at" | "updated_at" | "status"
+  "id" | "created_at" | "updated_at" | "status" | "notes"
 >;
 
 export function useCallbackRequests() {
@@ -65,17 +66,23 @@ export function useCallbackRequests() {
     },
   ]);
 
-  const updateStatusMutation = useMutation({
+  const updateStatus = useMutation({
     mutationFn: async ({
       id,
       status,
+      notes,
     }: {
       id: string;
-      status: CallbackRequest["status"];
+      status?: CallbackRequest["status"];
+      notes?: string;
     }) => {
+      const updates: Partial<CallbackRequest> = {};
+      if (status) updates.status = status;
+      if (notes !== undefined) updates.notes = notes;
+
       const { error, count } = await supabase
         .from("callback_requests")
-        .update({ status })
+        .update(updates)
         .eq("id", id)
         .select();
 
@@ -85,10 +92,10 @@ export function useCallbackRequests() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["callback-requests"] });
-      toast.success("Status updated successfully");
+      toast.success("Updated successfully");
     },
     onError: (error) => {
-      toast.error("Failed to update status: " + error.message);
+      toast.error("Failed to update: " + error.message);
     },
   });
 
@@ -109,13 +116,57 @@ export function useCallbackRequests() {
     },
   });
 
+  const updateCallbackRequestsStatus = useMutation({
+    mutationFn: async ({
+      ids,
+      status,
+    }: {
+      ids: string[];
+      status: CallbackRequest["status"];
+    }) => {
+      const { error } = await supabase
+        .from("callback_requests")
+        .update({ status })
+        .in("id", ids);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["callback-requests"] });
+      toast.success("Status updated successfully");
+    },
+    onError: (error) => {
+      toast.error("Failed to update status: " + error.message);
+    },
+  });
+
+  const deleteCallbackRequests = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from("callback_requests")
+        .delete()
+        .in("id", ids);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["callback-requests"] });
+      toast.success("Callback requests deleted successfully");
+    },
+    onError: (error) => {
+      toast.error("Failed to delete callback requests: " + error.message);
+    },
+  });
+
   return {
     callbackRequests,
     isLoading,
     error,
-    updateStatus: updateStatusMutation.mutate,
-    createCallbackRequest: createCallbackRequestMutation.mutate,
-    isUpdatingStatus: updateStatusMutation.isPending,
+    updateStatus: updateStatus.mutate,
+    isUpdatingStatus: updateStatus.isPending,
     isCreatingRequest: createCallbackRequestMutation.isPending,
+    createCallbackRequest: createCallbackRequestMutation.mutate,
+    updateCallbackRequestsStatus,
+    deleteCallbackRequests,
   };
 }

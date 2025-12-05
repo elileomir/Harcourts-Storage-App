@@ -20,6 +20,9 @@ import { useQueryClient } from "@tanstack/react-query";
  *
  * @returns {boolean} isVisible - Current visibility state of the page
  */
+// Idle threshold: 5 minutes (well before 1-hour token expiry)
+const IDLE_THRESHOLD_MS = 5 * 60 * 1000;
+
 export function usePageVisibility(): boolean {
   // Check if we're in browser environment (SSR-safe)
   const isBrowser = typeof window !== "undefined";
@@ -32,7 +35,7 @@ export function usePageVisibility(): boolean {
 
   // Idle threshold: 5 minutes (well before 1-hour token expiry)
   // This ensures we refresh before token expires
-  const IDLE_THRESHOLD_MS = 5 * 60 * 1000;
+  // Moved outside to avoid dependency issues
 
   useEffect(() => {
     // Only run in browser environment
