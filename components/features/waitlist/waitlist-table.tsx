@@ -397,11 +397,17 @@ export function WaitlistTable({
                       )}
                     </TableCell>
                     <TableCell>
-                      {format(new Date(request.created_at), "MMM d, yyyy")}
+                      {format(
+                        new Date(request.created_at),
+                        "MMM d, yyyy h:mm a"
+                      )}
                     </TableCell>
                     <TableCell>
                       {request.last_notified
-                        ? format(new Date(request.last_notified), "MMM d, yyyy")
+                        ? format(
+                            new Date(request.last_notified),
+                            "MMM d, yyyy h:mm a"
+                          )
                         : "-"}
                     </TableCell>
                     <TableCell className="font-medium">
