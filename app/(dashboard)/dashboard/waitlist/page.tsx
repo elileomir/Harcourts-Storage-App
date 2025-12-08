@@ -11,17 +11,20 @@ import {
   WaitlistRequest,
   WaitlistRequestInput,
 } from "@/hooks/use-waitlist";
+import { useUnits } from "@/hooks/use-units";
 
 export default function WaitlistPage() {
   const {
     waitlistRequests,
-    isLoading,
-    error,
+    isLoading: isLoadingWaitlist,
+    error: waitlistError,
     updateStatus,
     createWaitlistRequest,
     updateWaitlistRequest,
     deleteWaitlistRequest,
   } = useWaitlist();
+
+  const { units, isLoading: isLoadingUnits, error: unitsError } = useUnits();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRequest, setEditingRequest] = useState<WaitlistRequest | null>(
@@ -64,7 +67,7 @@ export default function WaitlistPage() {
     updateStatus({ id, status });
   };
 
-  if (isLoading) {
+  if (isLoadingWaitlist || isLoadingUnits) {
     return (
       <div className="flex justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -72,15 +75,16 @@ export default function WaitlistPage() {
     );
   }
 
-  if (error) {
+  if (waitlistError || unitsError) {
     return (
       <div className="flex h-96 flex-col items-center justify-center gap-4 text-center">
         <div className="text-red-500">
           <AlertCircle className="h-12 w-12" />
         </div>
-        <h3 className="text-lg font-semibold">Failed to load waitlist</h3>
+        <h3 className="text-lg font-semibold">Failed to load data</h3>
         <p className="text-sm text-muted-foreground max-w-sm">
-          There was an error loading the waitlist requests. Please try again.
+          There was an error loading the waitlist or units data. Please try
+          again.
         </p>
         <Button onClick={() => window.location.reload()}>Reload Page</Button>
       </div>
@@ -101,6 +105,7 @@ export default function WaitlistPage() {
 
       <WaitlistTable
         requests={waitlistRequests || []}
+        units={units || []}
         onStatusUpdate={handleStatusUpdate}
         onEdit={handleEdit}
         onDelete={(id) => deleteWaitlistRequest(id)}

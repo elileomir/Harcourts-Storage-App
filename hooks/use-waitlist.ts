@@ -20,11 +20,12 @@ export type WaitlistRequest = {
     | "Expired";
   created_at: string;
   updated_at: string;
+  last_notified?: string | null;
 };
 
 export type WaitlistRequestInput = Omit<
   WaitlistRequest,
-  "id" | "created_at" | "updated_at" | "status"
+  "id" | "created_at" | "updated_at" | "status" | "last_notified"
 >;
 
 export function useWaitlist() {
@@ -45,7 +46,7 @@ export function useWaitlist() {
         const { data, error } = await supabase
           .from("waitlist_requests")
           .select("*")
-          .order("created_at", { ascending: false })
+          .order("created_at", { ascending: true })
           .abortSignal(controller.signal);
 
         if (error) throw error;
