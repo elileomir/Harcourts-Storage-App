@@ -39,6 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Always fetch profile to ensure we have the latest role (DB is source of truth)
           console.log("[AuthProvider] Fetching role from profiles...");
           let retries = 3;
+          let profileFound = false;
           while (retries > 0) {
             const { data: profile, error } = await supabase
               .from("profiles")
@@ -58,6 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 profile.role
               );
               setRole(profile.role ?? "user");
+              profileFound = true;
               break;
             }
 
@@ -67,12 +69,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 `[AuthProvider] Retrying profile fetch... (${retries} attempts left)`
               );
               await new Promise((resolve) => setTimeout(resolve, 1000));
-            } else {
-              console.warn(
-                "Failed to fetch profile role after 3 retries, defaulting to user."
-              );
-              setRole("user");
             }
+          }
+
+          // If no profile found (SSO user not invited), deny access
+          if (!profileFound) {
+            console.warn(
+              "[AuthProvider] No profile found - user not invited. Signing out."
+            );
+            await supabase.auth.signOut();
+            window.location.href =
+              "/login?error=access_denied&error_description=You%20must%20be%20invited%20to%20access%20this%20application";
+            return;
           }
         } else {
           setRole(null);
@@ -108,6 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             "[AuthProvider] No metadata role, fetching from profiles..."
           );
           let retries = 3;
+          let profileFound = false;
           while (retries > 0) {
             const { data: profile, error } = await supabase
               .from("profiles")
@@ -127,6 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 profile.role
               );
               setRole(profile.role ?? "user");
+              profileFound = true;
               break;
             }
 
@@ -136,12 +146,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 `[AuthProvider] Retrying profile fetch... (${retries} attempts left)`
               );
               await new Promise((resolve) => setTimeout(resolve, 1000));
-            } else {
-              console.warn(
-                "Failed to fetch profile role after 3 retries, defaulting to user."
-              );
-              setRole("user");
             }
+          }
+
+          // If no profile found (SSO user not invited), deny access
+          if (!profileFound) {
+            console.warn(
+              "[AuthProvider] No profile found on auth change - user not invited. Signing out."
+            );
+            await supabase.auth.signOut();
+            window.location.href =
+              "/login?error=access_denied&error_description=You%20must%20be%20invited%20to%20access%20this%20application";
+            return;
           }
         }
       } else {
