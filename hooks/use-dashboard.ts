@@ -57,7 +57,12 @@ export interface DashboardFilters {
 export function useDashboard(filters: DashboardFilters = {}) {
   const supabase = createClient();
   const queryClient = useQueryClient();
-  const { getCostPerCredit, getRevenueCommissionRate } = usePlatformSettings();
+  const {
+    getCostPerCredit,
+    getRevenueCommissionRate,
+    getMonthlyCost,
+    getMonthlyCredits,
+  } = usePlatformSettings();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["dashboard", filters],
@@ -662,6 +667,10 @@ export function useDashboard(filters: DashboardFilters = {}) {
             highQualityConversion,
             activeBookingsCount: activeBookings.length,
             netRevenue: totalMonthlyRevenue - estimatedCreditCost,
+            // Platform Cost Stats
+            platformMonthlyCost: getMonthlyCost(),
+            platformMonthlyCredits: getMonthlyCredits(),
+            costPerCredit: creditCost,
           },
           charts: {
             unitStatusDistribution,
