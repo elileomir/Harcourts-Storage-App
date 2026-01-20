@@ -80,7 +80,7 @@ export function useDashboard(filters: DashboardFilters = {}) {
             supabase
               .from("call_analytics")
               .select(
-                "call_id, start_time, duration_seconds, handoff_success, csat_score, lead_quality_score, created_at, cost_credits, llm_charge, call_charge, competitor_mention, requested_move_in_window"
+                "call_id, start_time, duration_seconds, handoff_success, csat_score, lead_quality_score, created_at, cost_credits, llm_charge, call_charge, competitor_mention, requested_move_in_window",
               )
               .order("start_time", { ascending: false })
               .abortSignal(controller.signal),
@@ -116,7 +116,7 @@ export function useDashboard(filters: DashboardFilters = {}) {
           units = units.filter((u: Unit) => u.facility === filters.facility);
           bookings = bookings.filter(
             (b: BookingWithUnit) =>
-              b.storage_units?.facility === filters.facility
+              b.storage_units?.facility === filters.facility,
           );
         }
 
@@ -168,10 +168,10 @@ export function useDashboard(filters: DashboardFilters = {}) {
         // Units
         const totalUnits = units.length;
         const availableUnits = units.filter(
-          (u: Unit) => u.status === "Available"
+          (u: Unit) => u.status === "Available",
         ).length;
         const occupiedUnits = units.filter(
-          (u: Unit) => u.status === "Unavailable"
+          (u: Unit) => u.status === "Unavailable",
         ).length;
         const occupancyRate =
           totalUnits > 0
@@ -181,16 +181,16 @@ export function useDashboard(filters: DashboardFilters = {}) {
         // Bookings
         const totalBookings = bookings.length;
         const pendingBookings = bookings.filter(
-          (b: { status: string }) => b.status.toLowerCase() === "pending"
+          (b: { status: string }) => b.status.toLowerCase() === "pending",
         ).length;
-        const approvedBookings = bookings.filter(
-          (b: { status: string }) => b.status.toLowerCase() === "approved"
+        const approvedBookings = bookings.filter((b: { status: string }) =>
+          ["approved", "completed"].includes(b.status.toLowerCase()),
         ).length;
 
         // Calls
         const totalCalls = allCalls.length;
         const successfulHandoffs = allCalls.filter(
-          (c: { handoff_success: boolean }) => c.handoff_success === true
+          (c: { handoff_success: boolean }) => c.handoff_success === true,
         ).length;
         // User requested Booking Rate to include ALL bookings regardless of status
         const handoffSuccessRate =
@@ -201,15 +201,15 @@ export function useDashboard(filters: DashboardFilters = {}) {
         // ElevenLabs Credits (NOT dollars)
         const totalCredits = allCalls.reduce(
           (sum: number, call: CallAnalytics) => sum + (call.cost_credits || 0),
-          0
+          0,
         );
         const totalLLMCredits = allCalls.reduce(
           (sum: number, call: CallAnalytics) => sum + (call.llm_charge || 0),
-          0
+          0,
         );
         const totalCallCredits = allCalls.reduce(
           (sum: number, call: CallAnalytics) => sum + (call.call_charge || 0),
-          0
+          0,
         );
         const avgCreditsPerCall =
           totalCalls > 0 ? Math.round(totalCredits / totalCalls) : 0;
@@ -235,8 +235,8 @@ export function useDashboard(filters: DashboardFilters = {}) {
         // --- ROI & Revenue Analytics ---
 
         // Revenue Calculation from Active Bookings
-        const activeBookings = bookings.filter(
-          (b: BookingWithUnit) => b.status === "Active"
+        const activeBookings = bookings.filter((b: BookingWithUnit) =>
+          ["Active", "Completed"].includes(b.status),
         );
         const commissionRate = getRevenueCommissionRate() || 0.1;
 
@@ -250,7 +250,7 @@ export function useDashboard(filters: DashboardFilters = {}) {
             // Apply commission rate (e.g., 10% of monthly rent)
             return sum + price * commissionRate;
           },
-          0
+          0,
         );
 
         // Average Booking Value
@@ -275,7 +275,7 @@ export function useDashboard(filters: DashboardFilters = {}) {
                   ((totalMonthlyRevenue - estimatedCreditCost) /
                     estimatedCreditCost) *
                   100
-                ).toFixed(1)
+                ).toFixed(1),
               )
             : 0;
 
@@ -289,13 +289,13 @@ export function useDashboard(filters: DashboardFilters = {}) {
 
         // Lead Quality Breakdown
         const highQualityLeads = allCalls.filter(
-          (c: CallAnalytics) => c.lead_quality_score === "High"
+          (c: CallAnalytics) => c.lead_quality_score === "High",
         ).length;
         const mediumQualityLeads = allCalls.filter(
-          (c: CallAnalytics) => c.lead_quality_score === "Medium"
+          (c: CallAnalytics) => c.lead_quality_score === "Medium",
         ).length;
         const lowQualityLeads = allCalls.filter(
-          (c: CallAnalytics) => c.lead_quality_score === "Low"
+          (c: CallAnalytics) => c.lead_quality_score === "Low",
         ).length;
 
         // Lead Quality Rates
@@ -353,7 +353,7 @@ export function useDashboard(filters: DashboardFilters = {}) {
               cost: parseFloat(dayCost.toFixed(2)),
               bookings: data.bookings,
             };
-          }
+          },
         );
 
         // Conversion Funnel Data
@@ -389,13 +389,13 @@ export function useDashboard(filters: DashboardFilters = {}) {
             count: highQualityLeads,
             conversions: allCalls.filter(
               (c: CallAnalytics) =>
-                c.lead_quality_score === "High" && c.handoff_success
+                c.lead_quality_score === "High" && c.handoff_success,
             ).length,
             rate:
               highQualityLeads > 0
                 ? (allCalls.filter(
                     (c: CallAnalytics) =>
-                      c.lead_quality_score === "High" && c.handoff_success
+                      c.lead_quality_score === "High" && c.handoff_success,
                   ).length /
                     highQualityLeads) *
                   100
@@ -406,13 +406,13 @@ export function useDashboard(filters: DashboardFilters = {}) {
             count: mediumQualityLeads,
             conversions: allCalls.filter(
               (c: CallAnalytics) =>
-                c.lead_quality_score === "Medium" && c.handoff_success
+                c.lead_quality_score === "Medium" && c.handoff_success,
             ).length,
             rate:
               mediumQualityLeads > 0
                 ? (allCalls.filter(
                     (c: CallAnalytics) =>
-                      c.lead_quality_score === "Medium" && c.handoff_success
+                      c.lead_quality_score === "Medium" && c.handoff_success,
                   ).length /
                     mediumQualityLeads) *
                   100
@@ -423,13 +423,13 @@ export function useDashboard(filters: DashboardFilters = {}) {
             count: lowQualityLeads,
             conversions: allCalls.filter(
               (c: CallAnalytics) =>
-                c.lead_quality_score === "Low" && c.handoff_success
+                c.lead_quality_score === "Low" && c.handoff_success,
             ).length,
             rate:
               lowQualityLeads > 0
                 ? (allCalls.filter(
                     (c: CallAnalytics) =>
-                      c.lead_quality_score === "Low" && c.handoff_success
+                      c.lead_quality_score === "Low" && c.handoff_success,
                   ).length /
                     lowQualityLeads) *
                   100
@@ -491,7 +491,7 @@ export function useDashboard(filters: DashboardFilters = {}) {
           ([score, count]) => ({
             score: `${score} Star`,
             count,
-          })
+          }),
         );
 
         // 3. Lead Quality Distribution
@@ -507,7 +507,7 @@ export function useDashboard(filters: DashboardFilters = {}) {
           }
         });
         const leadQualityData = Object.entries(leadQualityMap).map(
-          ([name, value]) => ({ name, value })
+          ([name, value]) => ({ name, value }),
         );
 
         // 4. Unit status distribution
@@ -526,27 +526,27 @@ export function useDashboard(filters: DashboardFilters = {}) {
         // 5. Facility-Level Analytics
         const facilityBreakdown = facilities.map((facility) => {
           const facilityUnits = units.filter(
-            (u: Unit) => u.facility === facility
+            (u: Unit) => u.facility === facility,
           );
           const facilityBookings = bookings.filter(
-            (b: BookingWithUnit) => b.storage_units?.facility === facility
+            (b: BookingWithUnit) => b.storage_units?.facility === facility,
           );
 
           return {
             facility,
             totalUnits: facilityUnits.length,
             availableUnits: facilityUnits.filter(
-              (u: Unit) => u.status === "Available"
+              (u: Unit) => u.status === "Available",
             ).length,
             occupiedUnits: facilityUnits.filter(
-              (u: Unit) => u.status === "Unavailable"
+              (u: Unit) => u.status === "Unavailable",
             ).length,
             bookings: facilityBookings.length,
             occupancyRate:
               facilityUnits.length > 0
                 ? (
                     (facilityUnits.filter(
-                      (u: Unit) => u.status === "Unavailable"
+                      (u: Unit) => u.status === "Unavailable",
                     ).length /
                       facilityUnits.length) *
                     100
@@ -597,7 +597,7 @@ export function useDashboard(filters: DashboardFilters = {}) {
 
           const voiceCredits = dateCalls.reduce(
             (sum: number, call: CallAnalytics) => sum + (call.call_charge || 0),
-            0
+            0,
           );
 
           return {
@@ -610,7 +610,7 @@ export function useDashboard(filters: DashboardFilters = {}) {
         const revenueByFacility = activeBookings.reduce(
           (
             acc: { name: string; value: number }[],
-            booking: BookingWithUnit
+            booking: BookingWithUnit,
           ) => {
             const facility = booking.storage_units?.facility || "Unknown";
             const price = booking.monthly_rent
@@ -625,7 +625,7 @@ export function useDashboard(filters: DashboardFilters = {}) {
             }
             return acc;
           },
-          []
+          [],
         );
 
         return {
