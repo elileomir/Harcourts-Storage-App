@@ -43,6 +43,8 @@ import { exportToExcel } from "@/lib/excel-utils";
 import { FileDown } from "lucide-react";
 import { toast } from "sonner";
 
+import { Badge } from "@/components/ui/badge";
+
 interface BookingsTableProps {
   bookings: Booking[];
   onStatusUpdate: (id: number, status: string) => void;
@@ -118,14 +120,14 @@ export function BookingsTable({
       {
         onSuccess: () => {
           toast.success(
-            `Updated ${selectedBookingIds.length} bookings to ${status}`
+            `Updated ${selectedBookingIds.length} bookings to ${status}`,
           );
           setSelectedBookingIds([]);
         },
         onError: (error) => {
           toast.error(`Failed to update bookings: ${error.message}`);
         },
-      }
+      },
     );
   };
 
@@ -210,7 +212,7 @@ export function BookingsTable({
               deleteBookings.mutate(selectedBookingIds, {
                 onSuccess: () => {
                   toast.success(
-                    `Deleted ${selectedBookingIds.length} bookings`
+                    `Deleted ${selectedBookingIds.length} bookings`,
                   );
                   setSelectedBookingIds([]);
                 },
@@ -271,7 +273,8 @@ export function BookingsTable({
                   aria-label="Select all"
                 />
               </TableHead>
-              <TableHead>Customer</TableHead>
+              <TableHead className="w-[180px] lg:w-[220px]">Customer</TableHead>
+              <TableHead>Platform</TableHead>
               <TableHead>Unit</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Lease Period</TableHead>
@@ -282,7 +285,7 @@ export function BookingsTable({
             {filteredBookings.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No bookings found matching your criteria.
@@ -308,21 +311,40 @@ export function BookingsTable({
                       aria-label={`Select booking for ${booking.customer_name}`}
                     />
                   </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-medium">
+                  <TableCell className="max-w-[180px] lg:max-w-[220px]">
+                    <div className="flex flex-col truncate">
+                      <span
+                        className="font-medium truncate"
+                        title={booking.customer_name}
+                      >
                         {booking.customer_name}
                       </span>
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Mail className="h-3 w-3" /> {booking.customer_email}
+                      <span
+                        className="text-xs text-muted-foreground flex items-center gap-1 truncate"
+                        title={booking.customer_email}
+                      >
+                        <Mail className="h-3 w-3 flex-shrink-0" />{" "}
+                        {booking.customer_email}
                       </span>
                       {booking.customer_mobile && (
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Phone className="h-3 w-3" />{" "}
+                        <span className="text-xs text-muted-foreground flex items-center gap-1 truncate">
+                          <Phone className="h-3 w-3 flex-shrink-0" />{" "}
                           {booking.customer_mobile}
                         </span>
                       )}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={`${
+                        booking.platform === "retell"
+                          ? "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-50"
+                          : "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50"
+                      }`}
+                    >
+                      {booking.platform === "retell" ? "Retell" : "ElevenLabs"}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <button
@@ -347,24 +369,24 @@ export function BookingsTable({
                     >
                       <SelectTrigger
                         className={`h-7 w-auto min-w-[100px] gap-1 rounded-[4px] border px-2 py-0.5 text-xs font-semibold shadow-none focus:ring-0 ${getStatusColor(
-                          booking.status
+                          booking.status,
                         )}`}
                         style={{
                           backgroundColor:
                             booking.status === "Approved"
                               ? "#2C9143"
                               : booking.status === "Active"
-                              ? "#2563EB"
-                              : booking.status === "Pending"
-                              ? "#C4642F"
-                              : booking.status === "Ending"
-                              ? "#EA580C"
-                              : booking.status === "Completed"
-                              ? "#6B7280"
-                              : booking.status === "Cancelled" ||
-                                booking.status === "Rejected"
-                              ? "#DC2626"
-                              : undefined,
+                                ? "#2563EB"
+                                : booking.status === "Pending"
+                                  ? "#C4642F"
+                                  : booking.status === "Ending"
+                                    ? "#EA580C"
+                                    : booking.status === "Completed"
+                                      ? "#6B7280"
+                                      : booking.status === "Cancelled" ||
+                                          booking.status === "Rejected"
+                                        ? "#DC2626"
+                                        : undefined,
                         }}
                       >
                         <SelectValue />
@@ -386,7 +408,7 @@ export function BookingsTable({
                         <Calendar className="h-3 w-3 text-muted-foreground" />
                         {format(
                           new Date(booking.lease_start_date),
-                          "MMM d, yyyy"
+                          "MMM d, yyyy",
                         )}
                       </span>
                       {booking.lease_end_date && (
@@ -394,7 +416,7 @@ export function BookingsTable({
                           to{" "}
                           {format(
                             new Date(booking.lease_end_date),
-                            "MMM d, yyyy"
+                            "MMM d, yyyy",
                           )}
                         </span>
                       )}
@@ -415,7 +437,7 @@ export function BookingsTable({
                         <DropdownMenuItem
                           onClick={() =>
                             navigator.clipboard.writeText(
-                              booking.customer_email
+                              booking.customer_email,
                             )
                           }
                         >

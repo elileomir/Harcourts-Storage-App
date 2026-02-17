@@ -25,6 +25,7 @@ export type Booking = {
     facility: string;
   };
   created_at: string;
+  platform?: string;
 };
 
 export function useBookings() {
@@ -44,7 +45,7 @@ export function useBookings() {
       try {
         const { data, error } = await supabase
           .from("bookings")
-          .select("*, storage_units(unit_number, facility)")
+          .select("*, storage_units(unit_number, facility)") // Platform is auto-selected if in *
           .abortSignal(controller.signal);
 
         if (error) throw error;

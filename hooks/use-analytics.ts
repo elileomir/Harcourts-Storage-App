@@ -20,10 +20,12 @@ export interface ToolCall {
 
 export interface TranscriptItem {
   role: string;
-  message: string | null;
+  message?: string | null; // ElevenLabs
+  content?: string | null; // Retell
+  words?: Array<{ word: string; start: number; end: number }>; // Retell
   tool_calls?: Array<ToolCall>;
   tool_results?: Array<ToolResult>;
-  time_in_call_secs: number;
+  time_in_call_secs?: number;
 }
 
 export interface EvaluationRationale {
@@ -35,10 +37,11 @@ export interface EvaluationRationale {
 export type CallLog = {
   call_id: string;
   agent_id: string;
+  platform?: string; // e.g. "elevenlabs" | "retell"
   start_time: string;
   end_time: string;
   duration_seconds: number;
-  cost_credits: number;
+  cost_credits: number; // For Retell this is cost in dollars
   handoff_success: boolean;
   brand_alignment: boolean;
   compliance_check: boolean;
@@ -75,7 +78,18 @@ export function useAnalytics() {
           .abortSignal(controller.signal);
 
         if (error) throw error;
-        return data as CallLog[];
+
+        // Normalize data
+        const normalizedData = (data as CallLog[]).map((call) => ({
+          ...call,
+          // Retell durations are in milliseconds, ElevenLabs are in seconds
+          duration_seconds:
+            call.platform === "retell"
+              ? Math.round(call.duration_seconds / 1000)
+              : call.duration_seconds,
+        }));
+
+        return normalizedData;
       } finally {
         clearTimeout(timeoutId);
       }
@@ -109,13 +123,16 @@ export function useAnalytics() {
   const csatScore = totalCalls > 0 ? (avgCsat / totalCalls).toFixed(1) : "0.0";
 
   // Churn reasons
-  const churnReasons = calls?.reduce((acc, curr) => {
-    if (curr.primary_churn_reason) {
-      acc[curr.primary_churn_reason] =
-        (acc[curr.primary_churn_reason] || 0) + 1;
-    }
-    return acc;
-  }, {} as Record<string, number>);
+  const churnReasons = calls?.reduce(
+    (acc, curr) => {
+      if (curr.primary_churn_reason) {
+        acc[curr.primary_churn_reason] =
+          (acc[curr.primary_churn_reason] || 0) + 1;
+      }
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
 
   const topChurn = Object.entries(churnReasons || {})
     .sort(([, a], [, b]) => b - a)
