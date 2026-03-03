@@ -3,6 +3,36 @@ import { NextResponse } from "next/server";
 import { EmailOtpType } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
+/** Create a Supabase server client with PKCE + reduced cookie options */
+async function createCallbackClient() {
+  const cookieStore = await cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        flowType: 'pkce',
+      },
+      cookieEncoding: 'raw',
+      cookieOptions: {
+        maxAge: 60 * 60, // 1 hour — reduces cookie header size
+        sameSite: 'lax' as const,
+        secure: process.env.NODE_ENV === 'production',
+      },
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+}
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
@@ -18,23 +48,7 @@ export async function GET(request: Request) {
 
   // Handle OAuth code exchange (for SSO providers like Azure)
   if (code) {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          },
-        },
-      }
-    );
+    const supabase = await createCallbackClient();
 
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
@@ -66,25 +80,7 @@ export async function GET(request: Request) {
       return NextResponse.redirect(setPasswordUrl);
     }
 
-    const cookieStore = await cookies();
-
-    // Create supabase client with proper cookie handling for redirects
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          },
-        },
-      }
-    );
+    const supabase = await createCallbackClient();
 
     // Use verifyOtp for email-based auth (recovery, magic links, etc.)
     const { data, error } = await supabase.auth.verifyOtp({
@@ -134,23 +130,7 @@ export async function GET(request: Request) {
   }
 
   // Default: check if user is authenticated
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
+  const supabase = await createCallbackClient();
 
   const {
     data: { user },

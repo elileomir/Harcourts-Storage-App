@@ -8,6 +8,15 @@ export async function createClient() {
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
+            auth: {
+                flowType: 'pkce',
+            },
+            cookieEncoding: 'raw',
+            cookieOptions: {
+                maxAge: 60 * 60, // 1 hour — reduces cookie header size
+                sameSite: 'lax' as const,
+                secure: process.env.NODE_ENV === 'production',
+            },
             cookies: {
                 getAll() {
                     return cookieStore.getAll()
