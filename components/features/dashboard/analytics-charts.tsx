@@ -1,68 +1,95 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import dynamic from "next/dynamic";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  ComposedChart,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-  LabelList,
-} from "recharts";
 import { formatPrice } from "@/lib/utils/price";
+import type { ApexOptions } from "apexcharts";
 
-// --- Colors ---
-const COLORS = {
-  primary: "#2563eb", // blue-600
-  secondary: "#16a34a", // green-600
-  accent: "#f59e0b", // amber-500
-  muted: "#94a3b8", // slate-400
-  danger: "#dc2626", // red-600
-  background: "#f8fafc", // slate-50
+// Dynamically import ApexCharts to avoid SSR issues
+const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
+
+// ─── Brand Palette ────────────────────────────────────────────────────────────
+const BRAND = {
+  blue:    "#00ADEF",
+  navy:    "#001F49",
+  green:   "#10b981",
+  amber:   "#f59e0b",
+  red:     "#ef4444",
+  purple:  "#8b5cf6",
+  slate:   "#64748b",
+  border:  "#e2e8f0",
 };
 
-const FACILITY_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6"];
-const FUNNEL_COLORS = ["#3b82f6", "#60a5fa", "#93c5fd", "#bfdbfe", "#dbeafe"];
+const SERIES_COLORS = [BRAND.blue, BRAND.green, BRAND.amber, BRAND.purple, "#f43f5e", "#06b6d4"];
+const FACILITY_COLORS = [BRAND.blue, BRAND.green, BRAND.amber, BRAND.purple];
+const FUNNEL_COLORS = ["#00ADEF", "#22d3ee", "#34d399", "#86efac", "#bbf7d0"];
 
-// --- Info Tooltip Component ---
-function ChartInfo({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+// ─── Shared ApexCharts base options ───────────────────────────────────────────
+const baseOptions = (extras: ApexOptions = {}): ApexOptions => ({
+  chart: {
+    background: "transparent",
+    fontFamily: "'Inter', 'system-ui', sans-serif",
+    toolbar: { show: false },
+    animations: {
+      enabled: true,
+      speed: 600,
+      animateGradually: { enabled: true, delay: 80 },
+      dynamicAnimation: { enabled: true, speed: 350 },
+    },
+    dropShadow: { enabled: false },
+    ...extras.chart,
+  },
+  tooltip: {
+    theme: "light",
+    style: { fontSize: "12px", fontFamily: "'Inter', sans-serif" },
+    ...extras.tooltip,
+  },
+  grid: {
+    borderColor: BRAND.border,
+    strokeDashArray: 4,
+    xaxis: { lines: { show: false } },
+    yaxis: { lines: { show: true } },
+    padding: { top: 0, right: 12, bottom: 0, left: 4 },
+    ...extras.grid,
+  },
+  xaxis: {
+    axisBorder: { show: false },
+    axisTicks: { show: false },
+    labels: {
+      style: { colors: BRAND.slate, fontSize: "11px" },
+    },
+    ...extras.xaxis,
+  },
+  yaxis: {
+    labels: {
+      style: { colors: BRAND.slate, fontSize: "11px" },
+    },
+    ...extras.yaxis,
+  },
+  legend: {
+    fontSize: "12px",
+    fontFamily: "'Inter', sans-serif",
+    labels: { colors: "#334155" },
+    markers: { size: 7 },
+    itemMargin: { horizontal: 12 },
+    ...extras.legend,
+  },
+  ...extras,
+});
+
+// ─── Info Tooltip ─────────────────────────────────────────────────────────────
+function ChartInfo({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <button className="ml-2 text-muted-foreground hover:text-foreground transition-colors">
+          <button className="ml-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
             <Info className="h-4 w-4" />
           </button>
         </TooltipTrigger>
-        <TooltipContent className="maxw-xs p-3">
+        <TooltipContent className="max-w-xs p-3">
           <p className="font-semibold mb-1">{title}</p>
           <p className="text-sm text-muted-foreground">{children}</p>
         </TooltipContent>
@@ -71,1057 +98,686 @@ function ChartInfo({
   );
 }
 
-// --- Existing Components (unchanged) ---
-
-export function CallVolumeChart({
-  data,
+// ─── Chart Card Wrapper ───────────────────────────────────────────────────────
+function ChartCard({
+  title,
+  description,
+  info,
+  height = 300,
+  children,
 }: {
-  data: Record<string, string | number>[];
+  title: string;
+  description: string;
+  info: string;
+  height?: number;
+  children: React.ReactNode;
 }) {
   return (
-    <Card className="h-full">
-      <CardHeader>
+    <Card className="h-full overflow-hidden">
+      <CardHeader className="pb-2">
         <div className="flex items-center">
-          <CardTitle>Call Volume & Bookings</CardTitle>
-          <ChartInfo title="Call Volume & Bookings">
-            Shows daily call volume and successful bookings over the last 30
-            days. The blue bars represent total calls received, while the green
-            line shows calls that resulted in bookings.
-          </ChartInfo>
+          <CardTitle className="text-base font-semibold">{title}</CardTitle>
+          <ChartInfo title={title}>{info}</ChartInfo>
         </div>
-        <CardDescription>
-          Daily call volume and successful bookings over the last 30 days
-        </CardDescription>
+        <CardDescription className="text-xs">{description}</CardDescription>
       </CardHeader>
-      <CardContent className="pl-2">
-        <div className="h-[300px] w-full">
-          <ResponsiveContainer
-            width="100%"
-            height="100%"
-            minWidth={0}
-            minHeight={0}
-          >
-            <ComposedChart data={data}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="#e2e8f0"
-              />
-              <XAxis
-                dataKey="date"
-                stroke="#64748b"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                minTickGap={30}
-              />
-              <YAxis
-                stroke="#64748b"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(value: number) => `${value}`}
-              />
-              <RechartsTooltip
-                contentStyle={{
-                  backgroundColor: "#fff",
-                  borderRadius: "8px",
-                  border: "1px solid #e2e8f0",
-                  boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                }}
-                itemStyle={{ fontSize: "12px" }}
-                labelStyle={{
-                  fontWeight: "bold",
-                  color: "#1e293b",
-                  marginBottom: "4px",
-                }}
-              />
-              <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} />
-              <Bar
-                dataKey="calls"
-                name="Total Calls"
-                fill={COLORS.primary}
-                radius={[4, 4, 0, 0]}
-                barSize={20}
-              />
-              <Line
-                type="monotone"
-                dataKey="bookings"
-                name="Bookings"
-                stroke={COLORS.secondary}
-                strokeWidth={2}
-                dot={{ r: 3, fill: COLORS.secondary }}
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
+      <CardContent className="p-0 pt-0">
+        <div style={{ height }} className="w-full px-2 pb-2">
+          {children}
         </div>
       </CardContent>
     </Card>
   );
 }
 
-export function CsatChart({
-  data,
-}: {
-  data: Record<string, string | number>[];
-}) {
+// ─── 1. Call Volume & Bookings ─────────────────────────────────────────────────
+export function CallVolumeChart({ data }: { data: Record<string, string | number>[] }) {
+  const categories = data.map((d) => String(d.date));
+  const options: ApexOptions = baseOptions({
+    chart: {
+      type: "bar",
+      stacked: false,
+    },
+    colors: [BRAND.blue, BRAND.green],
+    stroke: { curve: "smooth", width: [0, 2.5], colors: [BRAND.blue, BRAND.green] },
+    plotOptions: {
+      bar: { columnWidth: "45%", borderRadius: 4 },
+    },
+    xaxis: {
+      categories,
+      labels: { rotate: -30, style: { fontSize: "10px", colors: BRAND.slate } },
+      tooltip: { enabled: false },
+    },
+    yaxis: { labels: { style: { colors: BRAND.slate, fontSize: "11px" } } },
+    tooltip: {
+      shared: true,
+      intersect: false,
+      y: { formatter: (val: number) => `${val}` },
+    },
+    fill: {
+      type: ["solid", "gradient"],
+      gradient: {
+        shade: "light",
+        type: "vertical",
+        opacityFrom: 0.85,
+        opacityTo: 0.6,
+      },
+    },
+    legend: { position: "top", horizontalAlign: "right" },
+    dataLabels: { enabled: false },
+  });
+
+  const series = [
+    { name: "Total Calls", type: "bar", data: data.map((d) => Number(d.calls)) },
+    { name: "Bookings", type: "line", data: data.map((d) => Number(d.bookings)) },
+  ];
+
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <div className="flex items-center">
-          <CardTitle>CSAT Distribution</CardTitle>
-          <ChartInfo title="CSAT Distribution">
-            Customer Satisfaction (CSAT) scores rated from 1-5 stars. This shows
-            how many customers gave each rating. Higher stars (4-5) indicate
-            positive experiences.
-          </ChartInfo>
-        </div>
-        <CardDescription>Customer satisfaction scores</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[250px] w-full">
-          <ResponsiveContainer
-            width="100%"
-            height="100%"
-            minWidth={0}
-            minHeight={0}
-          >
-            <BarChart data={data} layout="vertical" margin={{ left: 20 }}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                horizontal={true}
-                vertical={false}
-                stroke="#e2e8f0"
-              />
-              <XAxis type="number" hide />
-              <YAxis
-                dataKey="score"
-                type="category"
-                stroke="#64748b"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                width={60}
-              />
-              <RechartsTooltip
-                cursor={{ fill: "transparent" }}
-                contentStyle={{
-                  backgroundColor: "#fff",
-                  borderRadius: "8px",
-                  border: "1px solid #e2e8f0",
-                }}
-              />
-              <Bar
-                dataKey="count"
-                name="Count"
-                radius={[0, 4, 4, 0]}
-                barSize={24}
-              >
-                {data.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={
-                      index >= 3
-                        ? COLORS.secondary
-                        : index === 2
-                        ? COLORS.accent
-                        : COLORS.danger
-                    }
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+    <ChartCard
+      title="Call Volume & Bookings"
+      description="Daily call volume and successful bookings over the last 30 days"
+      info="Shows daily call volume and successful bookings over the last 30 days. Blue bars = total calls, green line = bookings."
+      height={300}
+    >
+      <Chart options={options} series={series} type="bar" height="100%" width="100%" />
+    </ChartCard>
   );
 }
 
-export function LeadQualityChart({
-  data,
-}: {
-  data: Record<string, string | number>[];
-}) {
-  const RADIAN = Math.PI / 180;
-  interface CustomizedLabelProps {
-    cx?: number;
-    cy?: number;
-    midAngle?: number;
-    innerRadius?: number;
-    outerRadius?: number;
-    percent?: number;
-  }
+// ─── 2. CSAT Distribution ─────────────────────────────────────────────────────
+export function CsatChart({ data }: { data: Record<string, string | number>[] }) {
+  const options: ApexOptions = baseOptions({
+    chart: { type: "bar" },
+    colors: data.map((_, i) =>
+      i >= 3 ? BRAND.green : i === 2 ? BRAND.amber : BRAND.red
+    ),
+    plotOptions: {
+      bar: {
+        horizontal: true,
+        borderRadius: 4,
+        distributed: true,
+        dataLabels: { position: "top" },
+      },
+    },
+    dataLabels: {
+      enabled: true,
+      formatter: (val: number) => `${val}`,
+      offsetX: 20,
+      style: { fontSize: "12px", colors: ["#334155"], fontWeight: 600 },
+    },
+    xaxis: { categories: data.map((d) => String(d.score)), labels: { style: { fontSize: "11px", colors: BRAND.slate } } },
+    yaxis: { labels: { style: { colors: BRAND.slate, fontSize: "11px" } } },
+    tooltip: { y: { formatter: (val: number) => `${val} responses` } },
+    legend: { show: false },
+    grid: { xaxis: { lines: { show: true } }, yaxis: { lines: { show: false } } },
+  });
 
-  const renderCustomizedLabel = ({
-    cx,
-    cy,
-    midAngle,
-    innerRadius,
-    outerRadius,
-    percent,
-  }: CustomizedLabelProps) => {
-    if (
-      typeof cx !== "number" ||
-      typeof cy !== "number" ||
-      typeof midAngle !== "number" ||
-      typeof innerRadius !== "number" ||
-      typeof outerRadius !== "number" ||
-      typeof percent !== "number"
-    )
-      return null;
+  const series = [{ name: "Responses", data: data.map((d) => Number(d.count)) }];
 
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  return (
+    <ChartCard
+      title="CSAT Distribution"
+      description="Customer satisfaction scores"
+      info="CSAT scores rated 1–5 stars. Green = positive (4–5), Amber = neutral, Red = negative (1–2)."
+      height={250}
+    >
+      <Chart options={options} series={series} type="bar" height="100%" width="100%" />
+    </ChartCard>
+  );
+}
 
-    return percent > 0 ? (
-      <text
-        x={x}
-        y={y}
-        fill="white"
-        textAnchor={x > cx ? "start" : "end"}
-        dominantBaseline="central"
-        fontSize={12}
-        fontWeight="bold"
-      >
-        {`${(percent * 100).toFixed(0)}%`}
-      </text>
-    ) : null;
+// ─── 3. Lead Quality (Donut) ──────────────────────────────────────────────────
+export function LeadQualityChart({ data }: { data: Record<string, string | number>[] }) {
+  const options: ApexOptions = baseOptions({
+    chart: { type: "donut" },
+    colors: [BRAND.green, BRAND.amber, BRAND.slate],
+    labels: data.map((d) => String(d.name)),
+    dataLabels: { enabled: false },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: "68%",
+          labels: {
+            show: true,
+            name: { fontSize: "13px", color: "#334155", fontFamily: "Inter" },
+            value: { fontSize: "22px", fontWeight: 700, color: BRAND.navy, fontFamily: "Inter" },
+            total: {
+              show: true,
+              label: "Leads",
+              fontSize: "12px",
+              color: BRAND.slate,
+              formatter: (w: { globals: { seriesTotals: number[] } }) =>
+                w.globals.seriesTotals.reduce((a, b) => a + b, 0).toString(),
+            },
+          },
+        },
+      },
+    },
+    legend: { position: "bottom", horizontalAlign: "center" },
+    tooltip: { y: { formatter: (val: number) => `${val} leads` } },
+    stroke: { width: 2, colors: ["#fff"] },
+  });
+
+  const series = data.map((d) => Number(d.value));
+
+  return (
+    <ChartCard
+      title="Lead Quality"
+      description="AI-assessed lead quality distribution"
+      info="AI-assessed quality based on conversation analysis. High = strong intent, Medium = interested, Low = minimal engagement."
+      height={260}
+    >
+      <Chart options={options} series={series} type="donut" height="100%" width="100%" />
+    </ChartCard>
+  );
+}
+
+// ─── 4. Unit Status (Radial/Donut) ───────────────────────────────────────────
+export function UnitStatusChart({ data }: { data: Record<string, string | number>[] }) {
+  const colorMap: Record<string, string> = {
+    Available: BRAND.green,
+    "Pending Apps": BRAND.amber,
+    Occupied: BRAND.red,
   };
 
+  const options: ApexOptions = baseOptions({
+    chart: { type: "donut" },
+    colors: data.map((d) => colorMap[String(d.name)] || BRAND.blue),
+    labels: data.map((d) => String(d.name)),
+    dataLabels: { enabled: false },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: "70%",
+          labels: {
+            show: true,
+            name: { fontSize: "13px", color: "#334155", fontFamily: "Inter" },
+            value: { fontSize: "24px", fontWeight: 700, color: BRAND.navy },
+            total: {
+              show: true,
+              label: "Total Units",
+              fontFamily: "Inter",
+              fontSize: "12px",
+              color: BRAND.slate,
+              formatter: (w: { globals: { seriesTotals: number[] } }) =>
+                w.globals.seriesTotals.reduce((a, b) => a + b, 0).toString(),
+            },
+          },
+        },
+      },
+    },
+    legend: { position: "bottom" },
+    stroke: { width: 2, colors: ["#fff"] },
+    tooltip: { y: { formatter: (val: number) => `${val} units` } },
+  });
+
+  const series = data.map((d) => Number(d.value));
+
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <div className="flex items-center">
-          <CardTitle>Lead Quality</CardTitle>
-          <ChartInfo title="Lead Quality">
-            AI-assessed quality of each lead based on conversation analysis.
-            High quality leads show strong intent to rent, Medium shows
-            interest, and Low shows minimal engagement.
-          </ChartInfo>
-        </div>
-        <CardDescription>AI-assessed lead quality</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[250px] w-full flex justify-center">
-          <ResponsiveContainer
-            width="100%"
-            height="100%"
-            minWidth={0}
-            minHeight={0}
-          >
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={renderCustomizedLabel}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {data.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={
-                      entry.name === "High"
-                        ? COLORS.secondary
-                        : entry.name === "Medium"
-                        ? COLORS.accent
-                        : COLORS.muted
-                    }
-                  />
-                ))}
-              </Pie>
-              <RechartsTooltip />
-              <Legend verticalAlign="bottom" height={36} iconType="circle" />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+    <ChartCard
+      title="Unit Status"
+      description="Current occupancy overview"
+      info="Available = ready to rent, Pending Apps = application submitted, Occupied = currently rented."
+      height={260}
+    >
+      <Chart options={options} series={series} type="donut" height="100%" width="100%" />
+    </ChartCard>
   );
 }
 
-export function UnitStatusChart({
-  data,
-}: {
-  data: Record<string, string | number>[];
-}) {
-  const total = data.reduce((sum, item) => sum + Number(item.value), 0);
+// ─── 5. Bookings by Facility ──────────────────────────────────────────────────
+export function FacilityBreakdownChart({ data }: { data: Record<string, string | number>[] }) {
+  const options: ApexOptions = baseOptions({
+    chart: { type: "bar" },
+    colors: FACILITY_COLORS,
+    plotOptions: {
+      bar: {
+        columnWidth: "55%",
+        borderRadius: 5,
+        distributed: true,
+        dataLabels: { position: "top" },
+      },
+    },
+    dataLabels: {
+      enabled: true,
+      formatter: (val: number) => `${val}`,
+      offsetY: -18,
+      style: { fontSize: "11px", colors: ["#334155"], fontWeight: 600 },
+    },
+    xaxis: { categories: data.map((d) => String(d.facility)), labels: { style: { fontSize: "11px", colors: BRAND.slate } } },
+    yaxis: { labels: { style: { colors: BRAND.slate, fontSize: "11px" } } },
+    legend: { show: false },
+    tooltip: { y: { formatter: (val: number) => `${val} bookings` } },
+  });
+
+  const series = [{ name: "Bookings", data: data.map((d) => Number(d.bookings)) }];
 
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <div className="flex items-center">
-          <CardTitle>Unit Status</CardTitle>
-          <ChartInfo title="Unit Status">
-            Current occupancy overview. Available = ready to rent, Pending Apps
-            = application submitted, Occupied = currently rented out.
-          </ChartInfo>
-        </div>
-        <CardDescription>Current occupancy overview</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[250px] w-full flex items-center justify-center">
-          <ResponsiveContainer
-            width="100%"
-            height="100%"
-            minWidth={0}
-            minHeight={0}
-          >
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                innerRadius={55}
-                outerRadius={85}
-                paddingAngle={2}
-                dataKey="value"
-              >
-                {data.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={
-                      entry.name === "Available"
-                        ? COLORS.secondary
-                        : entry.name === "Pending Apps"
-                        ? COLORS.accent
-                        : COLORS.danger
-                    }
-                  />
-                ))}
-              </Pie>
-              <RechartsTooltip />
-              <Legend verticalAlign="bottom" height={36} iconType="circle" />
-              <text
-                x="50%"
-                y="45%"
-                textAnchor="middle"
-                dominantBaseline="middle"
-              >
-                <tspan
-                  x="50%"
-                  dy="0"
-                  fontSize="28"
-                  fontWeight="bold"
-                  fill="#1e293b"
-                >
-                  {total}
-                </tspan>
-                <tspan x="50%" dy="1.6em" fontSize="13" fill="#64748b">
-                  Total Units
-                </tspan>
-              </text>
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+    <ChartCard
+      title="Bookings by Facility"
+      description="Booking performance across facilities"
+      info="Total number of bookings per facility location. Helps identify which facilities are most in demand."
+      height={260}
+    >
+      <Chart options={options} series={series} type="bar" height="100%" width="100%" />
+    </ChartCard>
   );
 }
 
-export function FacilityBreakdownChart({
-  data,
-}: {
-  data: Record<string, string | number>[];
-}) {
+// ─── 6. Occupancy by Facility (Grouped Bar) ───────────────────────────────────
+export function OccupancyByFacilityChart({ data }: { data: Record<string, string | number>[] }) {
+  const options: ApexOptions = baseOptions({
+    chart: { type: "bar" },
+    colors: [BRAND.green, BRAND.red],
+    plotOptions: {
+      bar: { columnWidth: "60%", borderRadius: 4, borderRadiusApplication: "end" },
+    },
+    dataLabels: { enabled: false },
+    xaxis: { categories: data.map((d) => String(d.facility)), labels: { style: { fontSize: "11px", colors: BRAND.slate } } },
+    yaxis: { labels: { style: { colors: BRAND.slate, fontSize: "11px" } } },
+    legend: { position: "top", horizontalAlign: "right" },
+    tooltip: {
+      shared: true,
+      intersect: false,
+      y: { formatter: (val: number) => `${val} units` },
+    },
+    stroke: { show: true, width: 2, colors: ["transparent"] },
+    fill: { opacity: 1 },
+  });
+
+  const series = [
+    { name: "Available", data: data.map((d) => Number(d.availableUnits)) },
+    { name: "Occupied", data: data.map((d) => Number(d.occupiedUnits)) },
+  ];
+
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <div className="flex items-center">
-          <CardTitle>Bookings by Facility</CardTitle>
-          <ChartInfo title="Bookings by Facility">
-            Total number of bookings for each facility location. Helps identify
-            which facilities are most in demand.
-          </ChartInfo>
-        </div>
-        <CardDescription>Booking performance across facilities</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[250px] w-full">
-          <ResponsiveContainer
-            width="100%"
-            height="100%"
-            minWidth={0}
-            minHeight={0}
-          >
-            <BarChart data={data}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="#e2e8f0"
-              />
-              <XAxis
-                dataKey="facility"
-                stroke="#64748b"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                stroke="#64748b"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <RechartsTooltip
-                contentStyle={{
-                  backgroundColor: "#fff",
-                  borderRadius: "8px",
-                  border: "1px solid #e2e8f0",
-                }}
-              />
-              <Bar
-                dataKey="bookings"
-                name="Bookings"
-                fill={COLORS.primary}
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+    <ChartCard
+      title="Occupancy by Facility"
+      description="Availability across locations"
+      info="Shows available vs occupied units per facility. Calculated as (Occupied / Total) × 100%."
+      height={260}
+    >
+      <Chart options={options} series={series} type="bar" height="100%" width="100%" />
+    </ChartCard>
   );
 }
 
-export function OccupancyByFacilityChart({
-  data,
-}: {
-  data: Record<string, string | number>[];
-}) {
+// ─── 7. Average Call Duration (Area) ─────────────────────────────────────────
+export function DurationTrendChart({ data }: { data: Record<string, string | number>[] }) {
+  const options: ApexOptions = baseOptions({
+    chart: { type: "area" },
+    colors: [BRAND.blue],
+    stroke: { curve: "smooth", width: 2.5 },
+    fill: {
+      type: "gradient",
+      gradient: {
+        shadeIntensity: 1,
+        opacityFrom: 0.35,
+        opacityTo: 0.02,
+        stops: [0, 90, 100],
+      },
+    },
+    dataLabels: { enabled: false },
+    xaxis: {
+      categories: data.map((d) => String(d.date)),
+      labels: { rotate: -30, style: { fontSize: "10px", colors: BRAND.slate } },
+      tooltip: { enabled: false },
+    },
+    yaxis: {
+      labels: {
+        formatter: (val: number) => `${val}s`,
+        style: { colors: BRAND.slate, fontSize: "11px" },
+      },
+    },
+    tooltip: { y: { formatter: (val: number) => `${val} seconds` } },
+    markers: { size: 0, hover: { size: 5 } },
+  });
+
+  const series = [{ name: "Avg Duration (s)", data: data.map((d) => Number(d.avgDuration)) }];
+
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <div className="flex items-center">
-          <CardTitle>Occupancy by Facility</CardTitle>
-          <ChartInfo title="Occupancy by Facility">
-            Shows available vs. occupied units for each facility. Calculated as
-            (Occupied Units / Total Units) × 100%.
-          </ChartInfo>
-        </div>
-        <CardDescription>Availability across locations</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[250px] w-full">
-          <ResponsiveContainer
-            width="100%"
-            height="100%"
-            minWidth={0}
-            minHeight={0}
-          >
-            <BarChart data={data}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="#e2e8f0"
-              />
-              <XAxis
-                dataKey="facility"
-                stroke="#64748b"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                stroke="#64748b"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <RechartsTooltip
-                contentStyle={{
-                  backgroundColor: "#fff",
-                  borderRadius: "8px",
-                  border: "1px solid #e2e8f0",
-                }}
-              />
-              <Legend />
-              <Bar
-                dataKey="availableUnits"
-                name="Available"
-                fill={COLORS.secondary}
-                radius={[4, 4, 0, 0]}
-              />
-              <Bar
-                dataKey="occupiedUnits"
-                name="Occupied"
-                fill={COLORS.danger}
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+    <ChartCard
+      title="Average Call Duration"
+      description="Call duration trends over time"
+      info="Average duration of calls in seconds. Trends indicate engagement levels and conversation quality."
+      height={260}
+    >
+      <Chart options={options} series={series} type="area" height="100%" width="100%" />
+    </ChartCard>
   );
 }
 
-export function DurationTrendChart({
-  data,
-}: {
-  data: Record<string, string | number>[];
-}) {
-  return (
-    <Card className="h-full">
-      <CardHeader>
-        <div className="flex items-center">
-          <CardTitle>Average Call Duration</CardTitle>
-          <ChartInfo title="Average Call Duration">
-            Average duration of calls in seconds over time. Trends can indicate
-            engagement levels and conversation quality.
-          </ChartInfo>
-        </div>
-        <CardDescription>Call duration trends over time</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[250px] w-full">
-          <ResponsiveContainer
-            width="100%"
-            height="100%"
-            minWidth={0}
-            minHeight={0}
-          >
-            <LineChart data={data}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="#e2e8f0"
-              />
-              <XAxis
-                dataKey="date"
-                stroke="#64748b"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                minTickGap={30}
-              />
-              <YAxis
-                stroke="#64748b"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                label={{
-                  value: "Seconds",
-                  angle: -90,
-                  position: "insideLeft",
-                  style: { fontSize: 12 },
-                }}
-              />
-              <RechartsTooltip
-                contentStyle={{
-                  backgroundColor: "#fff",
-                  borderRadius: "8px",
-                  border: "1px solid #e2e8f0",
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="avgDuration"
-                name="Avg Duration (s)"
-                stroke={COLORS.primary}
-                strokeWidth={2}
-                dot={{ r: 3 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-export function CompetitorMentions({
-  data,
-}: {
-  data: Record<string, string | number>[];
-}) {
+// ─── 8. Competitor Mentions ───────────────────────────────────────────────────
+export function CompetitorMentions({ data }: { data: Record<string, string | number>[] }) {
   if (data.length === 0) {
     return (
-      <Card className="h-full">
-        <CardHeader>
-          <div className="flex items-center">
-            <CardTitle>Competitor Mentions</CardTitle>
-            <ChartInfo title="Competitor Mentions">
-              Tracks when competitors are mentioned during calls. Helps
-              understand competitive landscape and customer shopping behavior.
-            </ChartInfo>
-          </div>
-          <CardDescription>Competitors mentioned in calls</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[250px] flex items-center justify-center text-muted-foreground">
-            No competitor mentions recorded
-          </div>
-        </CardContent>
-      </Card>
+      <ChartCard
+        title="Competitor Mentions"
+        description="Competitors mentioned in calls"
+        info="Tracks when competitors are mentioned during calls."
+        height={260}
+      >
+        <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+          No competitor mentions recorded
+        </div>
+      </ChartCard>
     );
   }
 
+  const options: ApexOptions = baseOptions({
+    chart: { type: "bar" },
+    colors: [BRAND.amber],
+    plotOptions: {
+      bar: { horizontal: true, borderRadius: 4, distributed: false },
+    },
+    dataLabels: {
+      enabled: true,
+      formatter: (val: number) => `${val}`,
+      offsetX: 20,
+      style: { fontSize: "11px", colors: ["#334155"], fontWeight: 600 },
+    },
+    xaxis: { categories: data.map((d) => String(d.name)), labels: { style: { fontSize: "11px", colors: BRAND.slate } } },
+    yaxis: { labels: { style: { colors: BRAND.slate, fontSize: "11px" } } },
+    legend: { show: false },
+    tooltip: { y: { formatter: (val: number) => `${val} mentions` } },
+    grid: { xaxis: { lines: { show: true } }, yaxis: { lines: { show: false } } },
+  });
+
+  const series = [{ name: "Mentions", data: data.map((d) => Number(d.count)) }];
+
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <div className="flex items-center">
-          <CardTitle>Competitor Mentions</CardTitle>
-          <ChartInfo title="Competitor Mentions">
-            Tracks when competitors are mentioned during calls. Helps understand
-            competitive landscape and customer shopping behavior.
-          </ChartInfo>
-        </div>
-        <CardDescription>Competitors mentioned in calls</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[250px] w-full">
-          <ResponsiveContainer
-            width="100%"
-            height="100%"
-            minWidth={0}
-            minHeight={0}
-          >
-            <BarChart data={data} layout="vertical">
-              <CartesianGrid
-                strokeDasharray="3 3"
-                horizontal={true}
-                vertical={false}
-                stroke="#e2e8f0"
-              />
-              <XAxis
-                type="number"
-                stroke="#64748b"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                dataKey="name"
-                type="category"
-                stroke="#64748b"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                width={100}
-              />
-              <RechartsTooltip
-                contentStyle={{
-                  backgroundColor: "#fff",
-                  borderRadius: "8px",
-                  border: "1px solid #e2e8f0",
-                }}
-              />
-              <Bar
-                dataKey="count"
-                name="Mentions"
-                fill={COLORS.accent}
-                radius={[0, 4, 4, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+    <ChartCard
+      title="Competitor Mentions"
+      description="Competitors mentioned in calls"
+      info="Tracks when competitors are mentioned during calls. Helps understand the competitive landscape."
+      height={260}
+    >
+      <Chart options={options} series={series} type="bar" height="100%" width="100%" />
+    </ChartCard>
   );
 }
 
-// --- NEW ROI & PERFORMANCE CHARTS ---
+// ─── 9. ROI Trend (Area + Line) ───────────────────────────────────────────────
+export function ROITrendChart({ data }: { data: Record<string, string | number>[] }) {
+  const options: ApexOptions = baseOptions({
+    chart: { type: "line" },
+    colors: [BRAND.green, BRAND.blue, BRAND.amber],
+    stroke: { curve: "smooth", width: [3, 2, 2] },
+    fill: {
+      type: ["gradient", "solid", "solid"],
+      gradient: {
+        shadeIntensity: 1,
+        opacityFrom: 0.3,
+        opacityTo: 0.02,
+      },
+    },
+    dataLabels: { enabled: false },
+    xaxis: {
+      categories: data.map((d) => String(d.date)),
+      labels: { rotate: -30, style: { fontSize: "10px", colors: BRAND.slate } },
+      tooltip: { enabled: false },
+    },
+    yaxis: [
+      {
+        title: { text: "ROI %", style: { color: BRAND.green, fontSize: "11px" } },
+        labels: {
+          formatter: (val: number) => `${val.toFixed(0)}%`,
+          style: { colors: BRAND.slate, fontSize: "11px" },
+        },
+      },
+      { show: false },
+      { show: false },
+    ],
+    tooltip: {
+      shared: true,
+      intersect: false,
+      y: [
+        { formatter: (val: number) => `${val.toFixed(1)}%` },
+        { formatter: (val: number) => formatPrice(val) },
+        { formatter: (val: number) => `$${val.toFixed(2)}` },
+      ],
+    },
+    legend: { position: "top", horizontalAlign: "right" },
+    markers: { size: 0, hover: { size: 5 } },
+  });
 
-export function ROITrendChart({
-  data,
-}: {
-  data: Record<string, string | number>[];
-}) {
+  const series = [
+    { name: "ROI %", type: "area", data: data.map((d) => Number(d.roi)) },
+    { name: "Revenue", type: "line", data: data.map((d) => Number(d.revenue)) },
+    { name: "Cost", type: "line", data: data.map((d) => Number(d.cost)) },
+  ];
+
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <div className="flex items-center">
-          <CardTitle>ROI Trend</CardTitle>
-          <ChartInfo title="ROI Trend">
-            Return on Investment over time. Shows (Revenue - Platform Cost) /
-            Platform Cost × 100%. Tracks how efficiently your investment in the
-            AI platform generates revenue.
-          </ChartInfo>
-        </div>
-        <CardDescription>30-day ROI performance</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[300px] w-full">
-          <ResponsiveContainer
-            width="100%"
-            height="100%"
-            minWidth={0}
-            minHeight={0}
-          >
-            <ComposedChart data={data}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="#e2e8f0"
-              />
-              <XAxis
-                dataKey="date"
-                stroke="#64748b"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                minTickGap={30}
-              />
-              <YAxis
-                stroke="#64748b"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                label={{ value: "ROI %", angle: -90, position: "insideLeft" }}
-              />
-              <RechartsTooltip
-                contentStyle={{
-                  backgroundColor: "#fff",
-                  borderRadius: "8px",
-                  border: "1px solid #e2e8f0",
-                }}
-                formatter={(value: number, name: string) => {
-                  if (name === "roi") return [`${value}%`, "ROI"];
-                  if (name === "cost") return [`$${value}`, "Cost"];
-                  if (name === "revenue")
-                    return [formatPrice(value), "Revenue"];
-                  return [value, name];
-                }}
-              />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="roi"
-                name="ROI %"
-                stroke={COLORS.secondary}
-                strokeWidth={3}
-                dot={{ r: 4 }}
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+    <ChartCard
+      title="ROI Trend"
+      description="30-day ROI performance"
+      info="Return on Investment over time. Shows (Revenue - Platform Cost) / Platform Cost × 100%."
+      height={300}
+    >
+      <Chart options={options} series={series} type="line" height="100%" width="100%" />
+    </ChartCard>
   );
 }
 
-export function RevenueByFacilityChart({
-  data,
-}: {
-  data: Record<string, string | number>[];
-}) {
+// ─── 10. Revenue by Facility (Gradient Bar) ───────────────────────────────────
+export function RevenueByFacilityChart({ data }: { data: Record<string, string | number>[] }) {
+  const options: ApexOptions = baseOptions({
+    chart: { type: "bar" },
+    colors: FACILITY_COLORS,
+    plotOptions: {
+      bar: {
+        columnWidth: "50%",
+        borderRadius: 6,
+        distributed: true,
+        dataLabels: { position: "top" },
+      },
+    },
+    dataLabels: {
+      enabled: true,
+      formatter: (val: number) => formatPrice(val),
+      offsetY: -20,
+      style: { fontSize: "10px", colors: ["#334155"], fontWeight: 600 },
+    },
+    xaxis: { categories: data.map((d) => String(d.facility)), labels: { style: { fontSize: "11px", colors: BRAND.slate } } },
+    yaxis: {
+      labels: {
+        formatter: (val: number) => `$${(val / 1000).toFixed(0)}k`,
+        style: { colors: BRAND.slate, fontSize: "11px" },
+      },
+    },
+    legend: { show: false },
+    tooltip: { y: { formatter: (val: number) => formatPrice(val) } },
+    fill: {
+      type: "gradient",
+      gradient: {
+        shade: "light",
+        type: "vertical",
+        opacityFrom: 0.95,
+        opacityTo: 0.7,
+      },
+    },
+  });
+
+  const series = [{ name: "Revenue", data: data.map((d) => Number(d.revenue)) }];
+
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <div className="flex items-center">
-          <CardTitle>Revenue by Facility</CardTitle>
-          <ChartInfo title="Revenue by Facility">
-            Monthly recurring revenue from active bookings at each facility.
-            Helps identify top revenue-generating locations.
-          </ChartInfo>
-        </div>
-        <CardDescription>Monthly revenue breakdown</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[300px] w-full">
-          <ResponsiveContainer
-            width="100%"
-            height="100%"
-            minWidth={0}
-            minHeight={0}
-          >
-            <BarChart data={data}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="#e2e8f0"
-              />
-              <XAxis
-                dataKey="facility"
-                stroke="#64748b"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                stroke="#64748b"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(value: number) => `$${value}`}
-              />
-              <RechartsTooltip
-                contentStyle={{
-                  backgroundColor: "#fff",
-                  borderRadius: "8px",
-                  border: "1px solid #e2e8f0",
-                }}
-                formatter={(value: number) => [formatPrice(value), "Revenue"]}
-              />
-              <Bar
-                dataKey="revenue"
-                name="Monthly Revenue"
-                fill={COLORS.secondary}
-                radius={[4, 4, 0, 0]}
-              >
-                {data.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={FACILITY_COLORS[index % FACILITY_COLORS.length]}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+    <ChartCard
+      title="Revenue by Facility"
+      description="Monthly revenue breakdown"
+      info="Monthly recurring revenue from active bookings at each facility."
+      height={300}
+    >
+      <Chart options={options} series={series} type="bar" height="100%" width="100%" />
+    </ChartCard>
   );
 }
 
-export function ConversionFunnelChart({
-  data,
-}: {
-  data: Record<string, string | number>[];
-}) {
+// ─── 11. Conversion Funnel ────────────────────────────────────────────────────
+export function ConversionFunnelChart({ data }: { data: Record<string, string | number>[] }) {
+  const options: ApexOptions = baseOptions({
+    chart: { type: "bar" },
+    colors: FUNNEL_COLORS,
+    plotOptions: {
+      bar: {
+        columnWidth: "60%",
+        borderRadius: 5,
+        distributed: true,
+        dataLabels: { position: "top" },
+      },
+    },
+    dataLabels: {
+      enabled: true,
+      formatter: (_val: number, opts?: { dataPointIndex: number }) => {
+        const rate = data[opts?.dataPointIndex ?? 0]?.rate;
+        return rate != null ? `${Number(rate).toFixed(1)}%` : "";
+      },
+      offsetY: -20,
+      style: { fontSize: "10px", colors: ["#334155"], fontWeight: 600 },
+    },
+    xaxis: {
+      categories: data.map((d) => String(d.stage)),
+      labels: { rotate: -20, style: { fontSize: "10px", colors: BRAND.slate } },
+    },
+    yaxis: { labels: { style: { colors: BRAND.slate, fontSize: "11px" } } },
+    legend: { show: false },
+    tooltip: {
+      y: { formatter: (val: number, opts) => {
+        const rate = data[opts?.dataPointIndex ?? 0]?.rate;
+        return `${val} leads${rate != null ? ` (${Number(rate).toFixed(1)}%)` : ""}`;
+      }},
+    },
+    fill: {
+      type: "gradient",
+      gradient: {
+        shade: "light",
+        type: "vertical",
+        opacityFrom: 1,
+        opacityTo: 0.7,
+      },
+    },
+  });
+
+  const series = [{ name: "Count", data: data.map((d) => Number(d.count)) }];
+
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <div className="flex items-center">
-          <CardTitle>Conversion Funnel</CardTitle>
-          <ChartInfo title="Conversion Funnel">
-            Shows conversion rates at each stage from initial call to active
-            lease. Identifies where potential customers drop off in the booking
-            process.
-          </ChartInfo>
-        </div>
-        <CardDescription>Lead-to-booking progression</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[320px] w-full">
-          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-            <BarChart data={data} layout="horizontal">
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="#e2e8f0"
-              />
-              <XAxis
-                dataKey="stage"
-                stroke="#64748b"
-                fontSize={11}
-                tickLine={false}
-                axisLine={false}
-                angle={-15}
-                textAnchor="end"
-                height={80}
-              />
-              <YAxis
-                stroke="#64748b"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <RechartsTooltip
-                contentStyle={{
-                  backgroundColor: "#fff",
-                  borderRadius: "8px",
-                  border: "1px solid #e2e8f0",
-                }}
-                formatter={(value: number, name: string) => {
-                  if (name === "rate")
-                    return [`${value.toFixed(1)}%`, "Conversion Rate"];
-                  return [value, name];
-                }}
-              />
-              <Bar dataKey="count" name="Count" radius={[4, 4, 0, 0]}>
-                {data.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={FUNNEL_COLORS[index % FUNNEL_COLORS.length]}
-                  />
-                ))}
-                <LabelList
-                  dataKey="rate"
-                  position="top"
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  formatter={(value: any) => `${Number(value).toFixed(1)}%`}
-                  fontSize={11}
-                />
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+    <ChartCard
+      title="Conversion Funnel"
+      description="Lead-to-booking progression"
+      info="Shows conversion rates at each stage from initial call to active lease."
+      height={320}
+    >
+      <Chart options={options} series={series} type="bar" height="100%" width="100%" />
+    </ChartCard>
   );
 }
 
-export function LeadQualityPerformanceChart({
-  data,
-}: {
-  data: Record<string, string | number>[];
-}) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tooltipFormatter = (value: any, name: string) => {
-    if (name === "Conversion Rate") return [`${value.toFixed(1)}%`, name];
-    return [value, name];
-  };
+// ─── 12. Lead Quality Performance (Mixed) ────────────────────────────────────
+export function LeadQualityPerformanceChart({ data }: { data: Record<string, string | number>[] }) {
+  const options: ApexOptions = baseOptions({
+    chart: { type: "bar" },
+    colors: [BRAND.blue, BRAND.green],
+    plotOptions: {
+      bar: { columnWidth: "55%", borderRadius: 4, borderRadiusApplication: "end" },
+    },
+    dataLabels: { enabled: false },
+    xaxis: {
+      categories: data.map((d) => String(d.quality)),
+      labels: { style: { fontSize: "12px", colors: BRAND.slate } },
+    },
+    yaxis: [
+      {
+        title: { text: "Lead Count", style: { color: BRAND.blue, fontSize: "11px" } },
+        labels: { style: { colors: BRAND.slate, fontSize: "11px" } },
+      },
+      {
+        opposite: true,
+        title: { text: "Conv. Rate %", style: { color: BRAND.green, fontSize: "11px" } },
+        labels: {
+          formatter: (val: number) => `${val.toFixed(0)}%`,
+          style: { colors: BRAND.slate, fontSize: "11px" },
+        },
+      },
+    ],
+    tooltip: {
+      shared: true,
+      intersect: false,
+      y: [
+        { formatter: (val: number) => `${val} leads` },
+        { formatter: (val: number) => `${val.toFixed(1)}%` },
+      ],
+    },
+    legend: { position: "top", horizontalAlign: "right" },
+    stroke: { show: true, width: [0, 2.5], colors: [BRAND.blue, BRAND.green] },
+    fill: { opacity: [0.9, 1] },
+  });
+
+  const series = [
+    { name: "Lead Count", type: "bar", data: data.map((d) => Number(d.count)) },
+    { name: "Conversion Rate", type: "line", data: data.map((d) => Number(d.rate)) },
+  ];
 
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <div className="flex items-center">
-          <CardTitle>Lead Quality Performance</CardTitle>
-          <ChartInfo title="Lead Quality Performance">
-            Compares conversion rates by AI-assessed lead quality. Shows if
-            high-quality leads actually convert better, validating the AI
-            scoring.
-          </ChartInfo>
-        </div>
-        <CardDescription>Conversion by lead quality</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[300px] w-full">
-          <ResponsiveContainer
-            width="100%"
-            height="100%"
-            minWidth={0}
-            minHeight={0}
-          >
-            <BarChart data={data}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="#e2e8f0"
-              />
-              <XAxis
-                dataKey="quality"
-                stroke="#64748b"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                yAxisId="left"
-                stroke="#64748b"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                yAxisId="right"
-                orientation="right"
-                stroke="#64748b"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(value: number) => `${value}%`}
-              />
-              <RechartsTooltip
-                contentStyle={{
-                  backgroundColor: "#fff",
-                  borderRadius: "8px",
-                  border: "1px solid #e2e8f0",
-                }}
-                formatter={tooltipFormatter}
-              />
-              <Legend />
-              <Bar
-                yAxisId="left"
-                dataKey="count"
-                name="Lead Count"
-                fill={COLORS.primary}
-                radius={[4, 4, 0, 0]}
-              />
-              <Bar
-                yAxisId="right"
-                dataKey="rate"
-                name="Conversion Rate"
-                fill={COLORS.secondary}
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+    <ChartCard
+      title="Lead Quality Performance"
+      description="Conversion by lead quality tier"
+      info="Compares conversion rates by AI-assessed lead quality. Validates whether high-quality leads convert better."
+      height={300}
+    >
+      <Chart options={options} series={series} type="bar" height="100%" width="100%" />
+    </ChartCard>
   );
 }
 
-export function CreditBreakdownChart({
-  data,
-}: {
-  data: Record<string, string | number>[];
-}) {
+// ─── 13. Credit Breakdown (Stacked Area) ──────────────────────────────────────
+export function CreditBreakdownChart({ data }: { data: Record<string, string | number>[] }) {
+  const options: ApexOptions = baseOptions({
+    chart: { type: "area", stacked: true },
+    colors: [BRAND.blue, BRAND.amber],
+    stroke: { curve: "smooth", width: 2 },
+    fill: {
+      type: "gradient",
+      gradient: {
+        shadeIntensity: 1,
+        opacityFrom: 0.7,
+        opacityTo: 0.2,
+        stops: [0, 90, 100],
+      },
+    },
+    dataLabels: { enabled: false },
+    xaxis: {
+      categories: data.map((d) => String(d.date)),
+      labels: { rotate: -30, style: { fontSize: "10px", colors: BRAND.slate } },
+      tooltip: { enabled: false },
+    },
+    yaxis: {
+      labels: {
+        formatter: (val: number) => `${(val / 1000).toFixed(0)}k`,
+        style: { colors: BRAND.slate, fontSize: "11px" },
+      },
+      title: { text: "Credits", style: { color: BRAND.slate, fontSize: "11px" } },
+    },
+    tooltip: {
+      shared: true,
+      intersect: false,
+      y: { formatter: (val: number) => `${val.toLocaleString()} credits` },
+    },
+    legend: { position: "top", horizontalAlign: "right" },
+    markers: { size: 0, hover: { size: 4 } },
+  });
+
+  const series = [
+    { name: "LLM Credits", data: data.map((d) => Number(d.llmCredits)) },
+    { name: "Voice Credits", data: data.map((d) => Number(d.voiceCredits)) },
+  ];
+
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <div className="flex items-center">
-          <CardTitle>Credit Usage Breakdown</CardTitle>
-          <ChartInfo title="Credit Usage Breakdown">
-            Shows how ElevenLabs credits are being spent: LLM credits for AI
-            processing vs Voice credits for call time. Helps optimize usage.
-          </ChartInfo>
-        </div>
-        <CardDescription>LLM vs Voice credit usage</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[300px] w-full">
-          <ResponsiveContainer
-            width="100%"
-            height="100%"
-            minWidth={0}
-            minHeight={0}
-          >
-            <ComposedChart data={data}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="#e2e8f0"
-              />
-              <XAxis
-                dataKey="date"
-                stroke="#64748b"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                minTickGap={30}
-              />
-              <YAxis
-                stroke="#64748b"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                label={{ value: "Credits", angle: -90, position: "insideLeft" }}
-              />
-              <RechartsTooltip
-                contentStyle={{
-                  backgroundColor: "#fff",
-                  borderRadius: "8px",
-                  border: "1px solid #e2e8f0",
-                }}
-              />
-              <Legend />
-              <Bar
-                dataKey="llmCredits"
-                name="LLM Credits"
-                stackId="a"
-                fill={COLORS.primary}
-                radius={[0, 0, 0, 0]}
-              />
-              <Bar
-                dataKey="voiceCredits"
-                name="Voice Credits"
-                stackId="a"
-                fill={COLORS.accent}
-                radius={[4, 4, 0, 0]}
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+    <ChartCard
+      title="Credit Usage Breakdown"
+      description="LLM vs Voice credit spend over time"
+      info="Shows how ElevenLabs credits are split: LLM credits for AI processing vs Voice credits for call time."
+      height={300}
+    >
+      <Chart options={options} series={series} type="area" height="100%" width="100%" />
+    </ChartCard>
   );
 }

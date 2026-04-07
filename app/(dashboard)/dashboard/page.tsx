@@ -16,6 +16,7 @@ import {
   Clock,
   PhoneIncoming,
   BookOpen,
+  LayoutDashboard,
 } from "lucide-react";
 
 const container = {
@@ -41,6 +42,12 @@ const item = {
 };
 
 const storageSubLinks = [
+  {
+    name: "Overview",
+    href: "/dashboard/storage",
+    icon: LayoutDashboard,
+    desc: "Full dashboard",
+  },
   { name: "Units", href: "/dashboard/units", icon: Box, desc: "Manage units" },
   {
     name: "Bookings",
@@ -133,15 +140,15 @@ export default function DashboardHub() {
                 </span>
               </div>
 
-              <div className="space-y-2">
-                <h2 className="font-display text-3xl font-bold tracking-tight">
+              <Link href="/dashboard/storage" className="space-y-2 group/title">
+                <h2 className="font-display text-3xl font-bold tracking-tight group-hover/title:underline underline-offset-4 decoration-white/50">
                   Storage Management
                 </h2>
                 <p className="text-sky-100 text-base max-w-md leading-relaxed">
                   Manage storage units, track occupancy, handle bookings, and
                   monitor facility performance with AI-powered insights.
                 </p>
-              </div>
+              </Link>
             </div>
 
             {/* Sub-navigation buttons */}

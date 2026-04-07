@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { EmailOtpType } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
-/** Create a Supabase server client with PKCE + reduced cookie options */
+/** Create a Supabase server client with PKCE */
 async function createCallbackClient() {
   const cookieStore = await cookies();
   return createServerClient(
@@ -14,11 +14,10 @@ async function createCallbackClient() {
         flowType: 'pkce',
       },
       cookieEncoding: 'raw',
-      cookieOptions: {
-        maxAge: 60 * 60, // 1 hour — reduces cookie header size
-        sameSite: 'lax' as const,
-        secure: process.env.NODE_ENV === 'production',
-      },
+      // NOTE: Do NOT set cookieOptions.maxAge here.
+      // Supabase sets separate expiry for access_token (1h) and refresh_token (longer).
+      // Overriding maxAge applies the same limit to ALL cookies, killing the refresh
+      // token at the same time as the access token — causing an immediate sign-out loop.
       cookies: {
         getAll() {
           return cookieStore.getAll();
@@ -39,6 +38,19 @@ export async function GET(request: Request) {
   const token_hash = requestUrl.searchParams.get("token_hash");
   const type = requestUrl.searchParams.get("type");
   const next = requestUrl.searchParams.get("next") ?? "/dashboard";
+
+  // ── Handle OAuth/SSO errors forwarded by Supabase (e.g. signup_disabled) ──
+  const errorParam = requestUrl.searchParams.get("error");
+  const errorDescription = requestUrl.searchParams.get("error_description");
+  if (errorParam) {
+    console.error("[Callback] OAuth provider error:", errorParam, errorDescription);
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("error", errorParam);
+    if (errorDescription) {
+      loginUrl.searchParams.set("error_description", errorDescription);
+    }
+    return NextResponse.redirect(loginUrl);
+  }
 
   console.log("[Callback] Processing auth callback:", {
     type,

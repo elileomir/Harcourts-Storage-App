@@ -14,11 +14,9 @@ export async function updateSession(request: NextRequest) {
         flowType: 'pkce',
       },
       cookieEncoding: 'raw',
-      cookieOptions: {
-        maxAge: 60 * 60, // 1 hour — reduces cookie header size
-        sameSite: 'lax' as const,
-        secure: process.env.NODE_ENV === 'production',
-      },
+      // NOTE: Do NOT set cookieOptions.maxAge here.
+      // Overriding maxAge applies the same short expiry to the refresh_token,
+      // causing sessions to silently expire and sign out users.
       cookies: {
         getAll() {
           return request.cookies.getAll();

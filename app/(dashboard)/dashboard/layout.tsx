@@ -33,6 +33,7 @@ function useBoundedScroll(threshold: number) {
 
 function getBreadcrumb(pathname: string): string | null {
   if (pathname === "/dashboard") return null;
+  if (pathname.includes("/storage")) return "Storage Dashboard";
   if (pathname.includes("/units")) return "Units";
   if (pathname.includes("/bookings")) return "Bookings";
   if (pathname.includes("/analytics")) return "Analytics";
