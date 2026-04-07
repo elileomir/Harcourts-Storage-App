@@ -26,12 +26,20 @@ const SERIES_COLORS = [BRAND.blue, BRAND.green, BRAND.amber, BRAND.purple, "#f43
 const FACILITY_COLORS = [BRAND.blue, BRAND.green, BRAND.amber, BRAND.purple];
 const FUNNEL_COLORS = ["#00ADEF", "#22d3ee", "#34d399", "#86efac", "#bbf7d0"];
 
-// ─── Shared ApexCharts base options ───────────────────────────────────────────
-const baseOptions = (extras: ApexOptions = {}): ApexOptions => ({
-  chart: {
+// ─── Smart number formatter ────────────────────────────────────────────────────
+/** Formats raw API numbers cleanly: 150.999... → "151", 1500 → "1.5k", etc. */
+const fmtNum = (val: number): string => {
+  const n = Math.round(val);
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}k`;
+  return `${n}`;
+};
+
+const baseOptions = (extras: ApexOptions = {}): ApexOptions => {
+  // Deep-merge the chart key so toolbar/zoom always win after merging
+  const mergedChart = {
     background: "transparent",
     fontFamily: "'Inter', 'system-ui', sans-serif",
-    toolbar: { show: false },
     animations: {
       enabled: true,
       speed: 600,
@@ -39,45 +47,60 @@ const baseOptions = (extras: ApexOptions = {}): ApexOptions => ({
       dynamicAnimation: { enabled: true, speed: 350 },
     },
     dropShadow: { enabled: false },
-    ...extras.chart,
-  },
-  tooltip: {
-    theme: "light",
-    style: { fontSize: "12px", fontFamily: "'Inter', sans-serif" },
-    ...extras.tooltip,
-  },
-  grid: {
-    borderColor: BRAND.border,
-    strokeDashArray: 4,
-    xaxis: { lines: { show: false } },
-    yaxis: { lines: { show: true } },
-    padding: { top: 0, right: 12, bottom: 0, left: 4 },
-    ...extras.grid,
-  },
-  xaxis: {
-    axisBorder: { show: false },
-    axisTicks: { show: false },
-    labels: {
-      style: { colors: BRAND.slate, fontSize: "11px" },
+    // Per-chart overrides (type, stacked, events, etc.) come in here
+    ...(extras.chart ?? {}),
+    // These MUST come last — never allow extras to re-enable them
+    toolbar: { show: false },
+    zoom: { enabled: false },
+    selection: { enabled: false },
+  };
+
+  // Build final options without top-level ...extras spread (that was the bug)
+  return {
+    chart: mergedChart,
+    tooltip: {
+      theme: "light",
+      style: { fontSize: "12px", fontFamily: "'Inter', sans-serif" },
+      ...(extras.tooltip ?? {}),
     },
-    ...extras.xaxis,
-  },
-  yaxis: {
-    labels: {
-      style: { colors: BRAND.slate, fontSize: "11px" },
+    grid: {
+      borderColor: BRAND.border,
+      strokeDashArray: 4,
+      xaxis: { lines: { show: false } },
+      yaxis: { lines: { show: true } },
+      padding: { top: 0, right: 12, bottom: 0, left: 4 },
+      ...(extras.grid ?? {}),
     },
-    ...extras.yaxis,
-  },
-  legend: {
-    fontSize: "12px",
-    fontFamily: "'Inter', sans-serif",
-    labels: { colors: "#334155" },
-    markers: { size: 7 },
-    itemMargin: { horizontal: 12 },
-    ...extras.legend,
-  },
-  ...extras,
-});
+    xaxis: {
+      axisBorder: { show: false },
+      axisTicks: { show: false },
+      labels: { style: { colors: BRAND.slate, fontSize: "11px" } },
+      ...(extras.xaxis ?? {}),
+    },
+    yaxis: extras.yaxis ?? {
+      labels: {
+        // Global fallback: clean integers, no 150.00000000000
+        formatter: fmtNum,
+        style: { colors: BRAND.slate, fontSize: "11px" },
+      },
+    },
+    legend: {
+      fontSize: "12px",
+      fontFamily: "'Inter', sans-serif",
+      labels: { colors: "#334155" },
+      markers: { size: 7 },
+      itemMargin: { horizontal: 12 },
+      ...(extras.legend ?? {}),
+    },
+    // All other extras keys (colors, plotOptions, dataLabels, stroke, fill, etc.)
+    ...Object.fromEntries(
+      Object.entries(extras).filter(
+        ([k]) => !["chart", "tooltip", "grid", "xaxis", "yaxis", "legend"].includes(k)
+      )
+    ),
+  };
+};
+
 
 // ─── Info Tooltip ─────────────────────────────────────────────────────────────
 function ChartInfo({ title, children }: { title: string; children: React.ReactNode }) {
@@ -425,11 +448,32 @@ export function DurationTrendChart({ data }: { data: Record<string, string | num
     },
     yaxis: {
       labels: {
-        formatter: (val: number) => `${val}s`,
+        formatter: (val: number) => {
+          // Values > 3600 are likely milliseconds from ElevenLabs API
+          const secs = val > 3600 ? Math.round(val / 1000) : Math.round(val);
+          if (secs >= 60) {
+            const m = Math.floor(secs / 60);
+            const s = secs % 60;
+            return `${m}m ${s.toString().padStart(2, "0")}s`;
+          }
+          return `${secs}s`;
+        },
         style: { colors: BRAND.slate, fontSize: "11px" },
       },
     },
-    tooltip: { y: { formatter: (val: number) => `${val} seconds` } },
+    tooltip: {
+      y: {
+        formatter: (val: number) => {
+          const secs = val > 3600 ? Math.round(val / 1000) : Math.round(val);
+          if (secs >= 60) {
+            const m = Math.floor(secs / 60);
+            const s = secs % 60;
+            return `${m}m ${s.toString().padStart(2, "0")}s`;
+          }
+          return `${secs}s`;
+        },
+      },
+    },
     markers: { size: 0, hover: { size: 5 } },
   });
 
@@ -751,7 +795,11 @@ export function CreditBreakdownChart({ data }: { data: Record<string, string | n
     },
     yaxis: {
       labels: {
-        formatter: (val: number) => `${(val / 1000).toFixed(0)}k`,
+        formatter: (val: number) => {
+          if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(1)}M`;
+          if (val >= 1_000) return `${(val / 1_000).toFixed(0)}k`;
+          return `${Math.round(val)}`;
+        },
         style: { colors: BRAND.slate, fontSize: "11px" },
       },
       title: { text: "Credits", style: { color: BRAND.slate, fontSize: "11px" } },

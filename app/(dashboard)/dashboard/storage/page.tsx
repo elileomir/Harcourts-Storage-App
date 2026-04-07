@@ -295,11 +295,11 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="min-h-[60px] flex flex-col justify-center">
               <div className="text-2xl font-bold">
-                {metrics?.totalCredits || 0}
+                {Math.round(metrics?.totalCredits || 0).toLocaleString()}
               </div>
               <div className="text-xs text-muted-foreground space-y-0.5">
-                <div>LLM: {metrics?.totalLLMCredits || 0}</div>
-                <div>Voice: {metrics?.totalCallCredits || 0}</div>
+                <div>LLM: {Math.round(metrics?.totalLLMCredits || 0).toLocaleString()}</div>
+                <div>Voice: {Math.round(metrics?.totalCallCredits || 0).toLocaleString()}</div>
               </div>
             </CardContent>
           </Card>
@@ -327,7 +327,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="min-h-[60px] flex flex-col justify-center">
               <div className="text-2xl font-bold">
-                {metrics?.avgCreditsPerCall || 0}
+                {Math.round(metrics?.avgCreditsPerCall || 0).toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground">Per conversation</p>
             </CardContent>
@@ -361,7 +361,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="min-h-[60px] flex flex-col justify-center">
               <div className="text-2xl font-bold">
-                {metrics?.costPerBooking || 0}
+                {Math.round(metrics?.costPerBooking || 0).toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground">
                 Credits per conversion
@@ -392,11 +392,10 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="min-h-[60px] flex flex-col justify-center">
               <div className="text-2xl font-bold">
-                $
-                {metrics?.totalMonthlyRevenue?.toLocaleString(undefined, {
-                  minimumFractionDigits: 0,
+                ${Number(metrics?.totalMonthlyRevenue || 0).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
-                }) || 0}
+                })}
               </div>
               <p className="text-xs text-muted-foreground">
                 From {metrics?.activeBookingsCount || 0} active leases
