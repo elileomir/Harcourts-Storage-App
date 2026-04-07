@@ -10,8 +10,8 @@ export function createClient() {
   // Note: createBrowserClient handles SSR gracefully, so we don't need to throw on server-side
   if (!browserClient) {
     browserClient = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://placeholder.local',
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key',
       {
         auth: {
           flowType: 'pkce',

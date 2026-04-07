@@ -1,735 +1,318 @@
-﻿"use client";
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useDashboard, DashboardFilters } from "@/hooks/use-dashboard";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import {
-  Phone,
+  Box,
+  ArrowRight,
+  Sparkles,
+  FileText,
+  BarChart3,
+  Settings,
   Users,
-  TrendingUp,
-  Star,
-  DollarSign,
-  Info,
-  Percent,
-  Award,
-  Zap,
+  Receipt,
+  Clock,
+  PhoneIncoming,
+  BookOpen,
 } from "lucide-react";
-import {
-  CallVolumeChart,
-  CsatChart,
-  LeadQualityChart,
-  UnitStatusChart,
-  FacilityBreakdownChart,
-  OccupancyByFacilityChart,
-  DurationTrendChart,
-  CompetitorMentions,
-  ROITrendChart,
-  RevenueByFacilityChart,
-  ConversionFunnelChart,
-  LeadQualityPerformanceChart,
-  CreditBreakdownChart,
-} from "@/components/features/dashboard/analytics-charts";
-import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
-import { CallDetailsDrawer } from "@/components/features/analytics/call-details-drawer";
-import { useState } from "react";
-import { CallLog } from "@/hooks/use-analytics";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Button } from "@/components/ui/button";
 
-export default function DashboardPage() {
-  const [filters, setFilters] = useState<DashboardFilters>({
-    dateRange: "all",
-    facility: "all",
-  });
-  const [selectedCall, setSelectedCall] = useState<CallLog | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+    },
+  },
+};
 
-  const { data, isLoading, error } = useDashboard(filters);
-  const metrics = data?.metrics;
-  const facilities = data?.facilities || [];
+const item = {
+  hidden: { y: 16, opacity: 0 },
+  show: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      duration: 0.4,
+      ease: "easeOut" as const,
+    },
+  },
+};
 
-  const handleCallClick = (call: CallLog) => {
-    setSelectedCall(call);
-    setDrawerOpen(true);
-  };
+const storageSubLinks = [
+  { name: "Units", href: "/dashboard/units", icon: Box, desc: "Manage units" },
+  {
+    name: "Bookings",
+    href: "/dashboard/bookings",
+    icon: Users,
+    desc: "Reservations",
+  },
+  {
+    name: "Analytics",
+    href: "/dashboard/analytics",
+    icon: BarChart3,
+    desc: "Performance",
+  },
+  {
+    name: "Waitlist",
+    href: "/dashboard/waitlist",
+    icon: Clock,
+    desc: "Queue",
+  },
+  {
+    name: "Callbacks",
+    href: "/dashboard/callback-requests",
+    icon: PhoneIncoming,
+    desc: "Requests",
+  },
+  {
+    name: "Knowledge",
+    href: "/dashboard/knowledge",
+    icon: BookOpen,
+    desc: "AI training",
+  },
+];
 
-  const updateFilter = (key: keyof DashboardFilters, value: string) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
-  };
+export default function DashboardHub() {
+  const [userEmail, setUserEmail] = useState<string>("");
+  const supabase = createClient();
 
-  if (isLoading) {
-    return (
-      <div className="p-8 flex items-center justify-center h-full">
-        Loading dashboard...
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-8 flex flex-col items-center justify-center h-full space-y-4">
-        <div className="text-red-500 font-medium">
-          Failed to load dashboard data
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {error.message || "Unknown error occurred"}
-        </p>
-        <Button onClick={() => window.location.reload()} variant="default">
-          Retry
-        </Button>
-      </div>
-    );
-  }
+  useEffect(() => {
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user?.email) setUserEmail(user.email);
+    };
+    getUser();
+  }, [supabase]);
 
   return (
-    <TooltipProvider>
-      <div className="flex-1 space-y-4 p-8 pt-6">
-        {/* Header & Filters */}
-        <div className="flex items-center justify-between space-y-2">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-            <p className="text-muted-foreground">
-              Overview of your AI agent&apos;s performance and facility metrics.
-            </p>
-          </div>
-          <div className="flex items-center space-x-2">
-            {/* Date Range Filter */}
-            <Select
-              value={filters.dateRange}
-              onValueChange={(value) => updateFilter("dateRange", value)}
-            >
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Date Range" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Time</SelectItem>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="week">Last 7 Days</SelectItem>
-                <SelectItem value="month">This Month</SelectItem>
-                <SelectItem value="year">This Year</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Facility Filter */}
-            <Select
-              value={filters.facility}
-              onValueChange={(value) => updateFilter("facility", value)}
-            >
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Facility" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Facilities</SelectItem>
-                {facilities.map((facility: string) => (
-                  <SelectItem key={facility} value={facility}>
-                    {facility}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+    <div className="space-y-8 pb-8 w-full">
+      {/* Welcome Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-slate-200">
+        <div>
+          <h1 className="font-display text-3xl md:text-4xl font-bold text-[#001F49] tracking-tight">
+            Welcome back,{" "}
+            <span className="text-[#00ADEF] capitalize">
+              {userEmail ? userEmail.split("@")[0].split(".")[0] : "User"}
+            </span>
+          </h1>
+          <p className="text-slate-500 mt-2 text-lg">
+            Your project management toolkit for storage &amp; operations.
+          </p>
         </div>
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-6">
-          <Card sash>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-1">
-                Total Interactions
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-3 w-3 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="text-xs">
-                      Total inbound voice calls and chat conversations processed
-                      by the AI agent.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </CardTitle>
-              <Phone className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="min-h-[60px] flex flex-col justify-center">
-              <div className="text-2xl font-bold">
-                {metrics?.totalCalls || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {filters.dateRange === "all"
-                  ? "All time"
-                  : "In selected period"}
-              </p>
-            </CardContent>
-          </Card>
-          <Card sash>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-1">
-                Booking Rate
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-3 w-3 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="text-xs">
-                      Percentage of interactions resulting in a booking (all
-                      statuses).
-                    </p>
-                    <p className="text-xs mt-1 text-muted-foreground">
-                      Formula: ({data?.metrics.totalBookings || 0} Bookings /{" "}
-                      {data?.metrics.totalCalls || 0} Interactions) × 100%
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="min-h-[60px] flex flex-col justify-center">
-              <div className="text-2xl font-bold">
-                {metrics?.handoffSuccessRate || "0.0"}%
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {metrics?.approvedBookings || 0} approved bookings
-              </p>
-            </CardContent>
-          </Card>
-          <Card sash>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-1">
-                Average CSAT
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-3 w-3 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="text-xs">
-                      Average Customer Satisfaction Score (1-5) from post-call
-                      surveys.
-                    </p>
-                    <p className="text-xs mt-1 text-muted-foreground">
-                      Based on {data?.metrics.csatCount ?? 0} surveys collected.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </CardTitle>
-              <Star className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="min-h-[60px] flex flex-col justify-center">
-              <div className="text-2xl font-bold">
-                {metrics?.avgCsat || "N/A"}
-              </div>
-              <p className="text-xs text-muted-foreground">Out of 5.0</p>
-            </CardContent>
-          </Card>
-          <Card sash>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-1">
-                Occupancy
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-3 w-3 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="text-xs">
-                      Percentage of total units currently occupied.
-                    </p>
-                    <p className="text-xs mt-1 text-muted-foreground">
-                      Formula: ({data?.metrics.occupiedUnits || 0} Occupied /{" "}
-                      {data?.metrics.totalUnits || 0} Total) × 100%
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="min-h-[60px] flex flex-col justify-center">
-              <div className="text-2xl font-bold">
-                {metrics?.occupancyRate || "0.0"}%
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {metrics?.availableUnits || 0} available
-              </p>
-            </CardContent>
-          </Card>
-          <Card sash>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-1">
-                ElevenLabs Credits
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-3 w-3 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="font-semibold mb-1">
-                      ElevenLabs Platform Credits
-                    </p>
-                    <p className="text-xs">
-                      Total credits consumed (not dollars). Credits are charged
-                      for:
-                    </p>
-                    <ul className="text-xs mt-1 space-y-1">
-                      <li>
-                        ΓÇó <strong>LLM Usage</strong>: AI conversation
-                        processing (e.g., natural language understanding)
-                      </li>
-                      <li>
-                        ΓÇó <strong>Voice Calls</strong>: Call time duration
-                      </li>
-                    </ul>
-                    <p className="text-xs mt-1 text-muted-foreground">
-                      Check your ElevenLabs dashboard for credit pricing
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="min-h-[60px] flex flex-col justify-center">
-              <div className="text-2xl font-bold">
-                {metrics?.totalCredits || 0}
-              </div>
-              <div className="text-xs text-muted-foreground space-y-0.5">
-                <div>LLM: {metrics?.totalLLMCredits || 0}</div>
-                <div>Voice: {metrics?.totalCallCredits || 0}</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card sash>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-1">
-                Avg Credits/Call
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-3 w-3 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="text-xs">
-                      Average ElevenLabs credits consumed per conversation.
-                    </p>
-                    <p className="text-xs mt-1 text-muted-foreground">
-                      Formula:{" "}
-                      {data?.metrics.totalCredits?.toLocaleString() || 0}{" "}
-                      Credits / {data?.metrics.totalCalls || 0} Interactions
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="min-h-[60px] flex flex-col justify-center">
-              <div className="text-2xl font-bold">
-                {metrics?.avgCreditsPerCall || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">Per conversation</p>
-            </CardContent>
-          </Card>
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-full border border-emerald-100 self-start md:self-auto">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+          </span>
+          <span className="text-xs font-semibold text-emerald-700 uppercase tracking-wide">
+            System Active
+          </span>
         </div>
-
-        {/* Business Performance KPI Cards */}
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-6">
-          <Card sash>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-1">
-                Cost per Booking
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-3 w-3 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="text-xs">
-                      ElevenLabs credits spent per approved booking. Lower is
-                      better.
-                    </p>
-                    <p className="text-xs mt-1 text-muted-foreground">
-                      Formula:{" "}
-                      {data?.metrics.totalCredits?.toLocaleString() || 0}{" "}
-                      Credits / {data?.metrics.approvedBookings || 0} Approved
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="min-h-[60px] flex flex-col justify-center">
-              <div className="text-2xl font-bold">
-                {metrics?.costPerBooking || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Credits per conversion
-              </p>
-            </CardContent>
-          </Card>
-          <Card sash>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-1">
-                Monthly Revenue
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-3 w-3 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="text-xs">
-                      Monthly commission revenue from all Active bookings (10%
-                      of monthly rent).
-                    </p>
-                    <p className="text-xs mt-1 text-muted-foreground">
-                      Commission from {data?.metrics.activeBookingsCount || 0}{" "}
-                      active leases
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="min-h-[60px] flex flex-col justify-center">
-              <div className="text-2xl font-bold">
-                $
-                {metrics?.totalMonthlyRevenue?.toLocaleString(undefined, {
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 2,
-                }) || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                From {metrics?.activeBookingsCount || 0} active leases
-              </p>
-            </CardContent>
-          </Card>
-          <Card sash>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-1">
-                ROI
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-3 w-3 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs p-3">
-                    <p className="font-semibold mb-2">
-                      ROI Calculation Breakdown
-                    </p>
-                    <div className="text-xs space-y-1">
-                      <div className="flex justify-between gap-4">
-                        <span className="text-muted-foreground">Revenue:</span>
-                        <span>
-                          $
-                          {data?.metrics.totalMonthlyRevenue?.toLocaleString(
-                            undefined,
-                            {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            },
-                          ) || 0}
-                        </span>
-                      </div>
-                      <div className="flex justify-between gap-4">
-                        <span className="text-muted-foreground">
-                          Est. Cost:
-                        </span>
-                        <span className="text-destructive">
-                          -${data?.metrics.estimatedCreditCost?.toFixed(2) || 0}
-                        </span>
-                      </div>
-                      <div className="border-t my-1 pt-1 flex justify-between gap-4 font-medium">
-                        <span>Net Profit:</span>
-                        <span className="text-green-600">
-                          $
-                          {(
-                            (data?.metrics.totalMonthlyRevenue || 0) -
-                            (data?.metrics.estimatedCreditCost || 0)
-                          ).toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="text-[10px] text-muted-foreground mt-2 border-t pt-2 space-y-1">
-                        <p>Cost derived from usage:</p>
-                        <div className="flex justify-between">
-                          <span> Credits Used:</span>
-                          <span>
-                            {data?.metrics.totalCredits?.toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span> Rate:</span>
-                          <span>
-                            ${data?.metrics.costPerCredit?.toFixed(5)}/credit
-                          </span>
-                        </div>
-                        <p className="italic opacity-80 mt-1">
-                          (Based on ${data?.metrics.platformMonthlyCost}/mo for{" "}
-                          {data?.metrics.platformMonthlyCredits?.toLocaleString()}{" "}
-                          credits)
-                        </p>
-                      </div>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              </CardTitle>
-              <Percent className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="min-h-[60px] flex flex-col justify-center">
-              <div className="text-2xl font-bold">{metrics?.roi || "0.0"}%</div>
-              <p className="text-xs text-muted-foreground">
-                Platform efficiency
-              </p>
-            </CardContent>
-          </Card>
-          <Card sash>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-1">
-                Lead Quality
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-3 w-3 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="text-xs">
-                      Percentage of calls rated as &quot;High&quot; quality by
-                      AI.
-                    </p>
-                    <p className="text-xs mt-1 text-muted-foreground">
-                      Formula: ({data?.metrics.highQualityLeads || 0} High
-                      Quality / {data?.metrics.totalCalls || 0} Total) × 100%
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </CardTitle>
-              <Award className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="min-h-[60px] flex flex-col justify-center">
-              <div className="text-2xl font-bold">
-                {metrics?.highQualityRate || "0.0"}%
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {metrics?.highQualityLeads || 0} high quality leads
-              </p>
-            </CardContent>
-          </Card>
-          <Card sash>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-1">
-                Call Efficiency
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-3 w-3 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="text-xs">
-                      Number of bookings generated per 1,000 credits spent.
-                    </p>
-                    <p className="text-xs mt-1 text-muted-foreground">
-                      Formula: ({data?.metrics.totalBookings || 0} Bookings /{" "}
-                      {data?.metrics.totalCredits?.toLocaleString() || 0}{" "}
-                      Credits) × 1000
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </CardTitle>
-              <Zap className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="min-h-[60px] flex flex-col justify-center">
-              <div className="text-2xl font-bold">
-                {metrics?.callEfficiency || "0.00"}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Bookings per 1K credits
-              </p>
-            </CardContent>
-          </Card>
-          <Card sash>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-1">
-                Active Leases
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-3 w-3 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="text-xs">
-                      Total number of currently active bookings generating
-                      revenue.
-                    </p>
-                    <p className="text-xs mt-1 text-muted-foreground">
-                      Currently {data?.metrics.activeBookingsCount || 0} active
-                      leases
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="min-h-[60px] flex flex-col justify-center">
-              <div className="text-2xl font-bold">
-                {metrics?.activeBookingsCount || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Currently generating revenue
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Charts Section */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <div className="col-span-4">
-            {data?.charts?.callVolumeData && (
-              <CallVolumeChart data={data.charts.callVolumeData} />
-            )}
-          </div>
-          <div className="col-span-3">
-            {data?.charts?.unitStatusDistribution && (
-              <UnitStatusChart data={data.charts.unitStatusDistribution} />
-            )}
-          </div>
-        </div>
-
-        {/* ROI & Performance Analytics */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <div className="col-span-4">
-            {data?.charts?.roiTrendData && (
-              <ROITrendChart data={data.charts.roiTrendData} />
-            )}
-          </div>
-          <div className="col-span-3">
-            {data?.charts?.revenueByFacility && (
-              <RevenueByFacilityChart data={data.charts.revenueByFacility} />
-            )}
-          </div>
-        </div>
-
-        {/* Conversion & Lead Quality Analysis */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <div className="col-span-2">
-            {data?.charts?.conversionFunnelData && (
-              <ConversionFunnelChart data={data.charts.conversionFunnelData} />
-            )}
-          </div>
-          <div className="col-span-2">
-            {data?.charts?.leadQualityPerformanceData && (
-              <LeadQualityPerformanceChart
-                data={data.charts.leadQualityPerformanceData}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Cost Analysis */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <div className="col-span-2">
-            {data?.charts?.creditBreakdownData && (
-              <CreditBreakdownChart data={data.charts.creditBreakdownData} />
-            )}
-          </div>
-          <div className="col-span-2">
-            {data?.charts?.durationTrendData && (
-              <DurationTrendChart data={data.charts.durationTrendData} />
-            )}
-          </div>
-        </div>
-
-        {/* Secondary Charts - CSAT & Lead Quality */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <div className="col-span-2">
-            {data?.charts?.csatChartData && (
-              <CsatChart data={data.charts.csatChartData} />
-            )}
-          </div>
-          <div className="col-span-2">
-            {data?.charts?.leadQualityData && (
-              <LeadQualityChart data={data.charts.leadQualityData} />
-            )}
-          </div>
-        </div>
-
-        {/* Facility-Level Insights */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <div className="col-span-2">
-            {data?.charts?.facilityBreakdown && (
-              <FacilityBreakdownChart data={data.charts.facilityBreakdown} />
-            )}
-          </div>
-          <div className="col-span-2">
-            {data?.charts?.facilityBreakdown && (
-              <OccupancyByFacilityChart data={data.charts.facilityBreakdown} />
-            )}
-          </div>
-        </div>
-
-        {/* Additional Analytics */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <div className="col-span-2">
-            {data?.charts?.durationTrendData && (
-              <DurationTrendChart data={data.charts.durationTrendData} />
-            )}
-          </div>
-          <div className="col-span-2">
-            {data?.charts?.competitorData && (
-              <CompetitorMentions data={data.charts.competitorData} />
-            )}
-          </div>
-        </div>
-
-        {/* Recent Activity Feed */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <Card className="col-span-7">
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {data?.recentCalls && data.recentCalls.length > 0 ? (
-                  data.recentCalls.map((call: Partial<CallLog>) => (
-                    <div
-                      key={call.call_id}
-                      className="flex items-center cursor-pointer hover:bg-slate-50 p-3 rounded-lg transition-colors"
-                      onClick={() =>
-                        call.call_id && handleCallClick(call as CallLog)
-                      }
-                    >
-                      <div className="space-y-1 flex-1">
-                        <p className="text-sm font-medium leading-none">
-                          Call from{" "}
-                          {call.start_time
-                            ? format(new Date(call.start_time), "MMM d, h:mm a")
-                            : "Unknown time"}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Duration: {call.duration_seconds}s • CSAT:{" "}
-                          {call.csat_score || "N/A"} • Lead:{" "}
-                          {call.lead_quality_score || "N/A"}
-                        </p>
-                      </div>
-                      <div className="ml-auto font-medium">
-                        {call.handoff_success ? (
-                          <Badge className="bg-green-500">Booked</Badge>
-                        ) : (
-                          <Badge variant="secondary">Not Booked</Badge>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    No recent calls
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <CallDetailsDrawer
-          call={selectedCall}
-          open={drawerOpen}
-          onOpenChange={setDrawerOpen}
-        />
       </div>
-    </TooltipProvider>
+
+      {/* Bento Grid */}
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 md:grid-cols-2 gap-5 auto-rows-[minmax(280px,auto)]"
+      >
+        {/* HERO: Storage Management - Featured Tool */}
+        <motion.div variants={item} className="group relative">
+          <div className="relative h-full bg-gradient-to-br from-[#00ADEF] to-[#0088bc] rounded-2xl p-8 text-white overflow-hidden shadow-xl shadow-sky-500/20 transition-all duration-300 hover:shadow-2xl hover:shadow-sky-500/30 flex flex-col justify-between border border-sky-400/20">
+            {/* Content */}
+            <div className="relative z-10 flex flex-col gap-5">
+              <div className="inline-flex items-center gap-2 self-start bg-white/15 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/20">
+                <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+                <span className="text-[10px] font-bold uppercase tracking-wider">
+                  Featured Tool
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                <h2 className="font-display text-3xl font-bold tracking-tight">
+                  Storage Management
+                </h2>
+                <p className="text-sky-100 text-base max-w-md leading-relaxed">
+                  Manage storage units, track occupancy, handle bookings, and
+                  monitor facility performance with AI-powered insights.
+                </p>
+              </div>
+            </div>
+
+            {/* Sub-navigation buttons */}
+            <div className="relative z-10 mt-6 pt-5 border-t border-white/15">
+              <div className="grid grid-cols-3 sm:grid-cols-3 gap-2">
+                {storageSubLinks.map((link) => (
+                  <Link
+                    key={link.name}
+                    href={link.href}
+                    className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 hover:border-white/25 transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
+                  >
+                    <link.icon className="w-4 h-4 text-white/90" />
+                    <span className="text-[11px] font-semibold text-white/90">
+                      {link.name}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Decorative Icon */}
+            <div className="absolute -right-8 -bottom-8 opacity-10 transform rotate-12 group-hover:rotate-6 group-hover:scale-110 transition-all duration-500">
+              <Box className="w-56 h-56" />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Expense Approval */}
+        <motion.div variants={item} className="group relative">
+          <Link href="/dashboard/expense-approval" className="block h-full">
+            <div className="relative h-full bg-gradient-to-br from-teal-500/5 to-cyan-500/5 rounded-2xl p-8 overflow-hidden shadow-sm border border-teal-500/20 transition-all duration-300 hover:shadow-md hover:border-teal-500/30 hover:-translate-y-1 flex flex-col justify-between">
+              <div className="absolute top-0 right-0 p-4 opacity-5">
+                <FileText className="w-32 h-32 text-teal-600" />
+              </div>
+
+              {/* Content */}
+              <div className="relative z-10 flex flex-col gap-5">
+                <div className="inline-flex items-center gap-2 self-start bg-teal-50 px-3 py-1.5 rounded-full border border-teal-100">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500" />
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-teal-700">
+                    New Feature
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <h2 className="font-display text-2xl font-bold tracking-tight text-[#001F49]">
+                    Expense Approval
+                  </h2>
+                  <p className="text-slate-500 text-base max-w-md leading-relaxed">
+                    Landlord expense approval for council rates, land tax, and
+                    TasWater with DocuSign integration.
+                  </p>
+                </div>
+              </div>
+
+              <div className="relative z-10 mt-6 pt-5 border-t border-teal-100 flex items-center justify-between group-hover:border-teal-200 transition-colors">
+                <span className="font-semibold text-base text-teal-700">
+                  Create Approval
+                </span>
+                <div className="w-9 h-9 rounded-full bg-teal-100 flex items-center justify-center group-hover:bg-teal-200 group-hover:text-teal-800 transition-all duration-300">
+                  <ArrowRight className="w-4 h-4" />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  window.location.href = "/dashboard/expense-approvals";
+                }}
+                className="relative z-20 mt-3 flex items-center gap-2 text-xs font-semibold text-teal-600 hover:text-teal-800 transition-colors cursor-pointer"
+              >
+                <Receipt className="w-3.5 h-3.5" />
+                View Approvals History →
+              </button>
+            </div>
+          </Link>
+        </motion.div>
+
+        {/* Quick Actions - Full Width */}
+        <motion.div variants={item} className="md:col-span-2">
+          <div className="h-full bg-[#001F49] rounded-2xl p-6 sm:p-8 text-white shadow-xl flex flex-col justify-between relative overflow-hidden">
+            {/* Background Effects */}
+            <div className="absolute -top-24 -right-24 w-72 h-72 bg-[#00ADEF]/15 rounded-full blur-[80px]" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#000F24]/60 to-transparent" />
+
+            <div className="relative z-10 flex flex-col h-full">
+              <div className="flex items-center gap-2.5 mb-6">
+                <div className="p-2 bg-white/10 rounded-lg">
+                  <Settings className="w-4 h-4 text-sky-300" />
+                </div>
+                <h3 className="font-display text-lg font-bold">
+                  Quick Actions
+                </h3>
+              </div>
+
+              <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <Link
+                  href="/dashboard/expense-approval"
+                  className="flex flex-col p-5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 transition-all hover:-translate-y-0.5 group"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-teal-500/20 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                    <FileText className="w-4 h-4 text-teal-300" />
+                  </div>
+                  <span className="font-semibold text-sm text-white">
+                    New Expense
+                  </span>
+                  <span className="text-xs text-slate-400 mt-1">
+                    Create approval
+                  </span>
+                </Link>
+
+                <Link
+                  href="/dashboard/expense-approvals"
+                  className="flex flex-col p-5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 transition-all hover:-translate-y-0.5 group"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-sky-500/20 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                    <Receipt className="w-4 h-4 text-sky-300" />
+                  </div>
+                  <span className="font-semibold text-sm text-white">
+                    History
+                  </span>
+                  <span className="text-xs text-slate-400 mt-1">
+                    Past approvals
+                  </span>
+                </Link>
+
+                <Link
+                  href="/dashboard/settings"
+                  className="flex flex-col p-5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 transition-all hover:-translate-y-0.5 group"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-sky-500/20 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                    <Settings className="w-4 h-4 text-sky-300" />
+                  </div>
+                  <span className="font-semibold text-sm text-white">
+                    Settings
+                  </span>
+                  <span className="text-xs text-slate-400 mt-1">
+                    Configuration
+                  </span>
+                </Link>
+
+                <Link
+                  href="/dashboard/users"
+                  className="flex flex-col p-5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 transition-all hover:-translate-y-0.5 group"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-sky-500/20 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                    <Users className="w-4 h-4 text-sky-300" />
+                  </div>
+                  <span className="font-semibold text-sm text-white">
+                    Users
+                  </span>
+                  <span className="text-xs text-slate-400 mt-1">
+                    Manage access
+                  </span>
+                </Link>
+              </div>
+
+              <div className="mt-6 pt-5 border-t border-white/10 text-center">
+                <p className="text-[11px] text-slate-500">
+                  Harcourts PM App v1.0
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    </div>
   );
 }

@@ -14,6 +14,8 @@ import {
   User,
   PhoneIncoming,
   Clock,
+  FileText,
+  Receipt,
 } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -33,6 +35,16 @@ const navigation = [
     icon: PhoneIncoming,
   },
   { name: "Knowledge Base", href: "/dashboard/knowledge", icon: BookOpen },
+  {
+    name: "Expense Approval",
+    href: "/dashboard/expense-approval",
+    icon: FileText,
+  },
+  {
+    name: "Expense History",
+    href: "/dashboard/expense-approvals",
+    icon: Receipt,
+  },
   { name: "Settings", href: "/dashboard/settings", icon: User },
   { name: "Users", href: "/dashboard/users", icon: Users, adminOnly: true },
   {
