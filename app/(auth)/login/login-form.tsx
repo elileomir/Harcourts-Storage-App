@@ -146,7 +146,7 @@ export function LoginForm() {
               <span> App</span>
             </h1>
             <p className="text-slate-500 text-lg">
-              Your All-in-One Project Management Toolkit
+              Your All-in-One Property Management Toolkit
             </p>
           </div>
 

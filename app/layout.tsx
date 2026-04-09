@@ -17,8 +17,8 @@ const sourceSans = Source_Sans_3({
 });
 
 export const metadata: Metadata = {
-  title: "Harcourts PM App — Project Management",
-  description: "Project Management & Property Tools for Harcourts Ulverstone & Penguin",
+  title: "Harcourts PM App — Property Management",
+  description: "Property Management & Property Tools for Harcourts Ulverstone & Penguin",
   icons: {
     icon: "/harcourts-logo.svg",
   },
