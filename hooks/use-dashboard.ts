@@ -19,10 +19,6 @@ import { Unit } from "./use-units";
 import { Booking } from "./use-bookings";
 import { useRealtimeChannel } from "@/lib/hooks/use-realtime-channel";
 
-interface FacilityItem {
-  facility: string | null;
-}
-
 interface CallAnalytics {
   call_id: string;
   start_time: string;
@@ -66,13 +62,14 @@ export function useDashboard(filters: DashboardFilters = {}) {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["dashboard", filters],
+    staleTime: 60000, // 1 minute - prevent cascade refetches from auth/visibility events
     queryFn: async () => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
       try {
         // Fetch all data in parallel
-        const [unitsRes, bookingsRes, callsRes, facilitiesRes] =
+        const [unitsRes, bookingsRes, callsRes] =
           await Promise.all([
             supabase
               .from("storage_units")
@@ -89,11 +86,6 @@ export function useDashboard(filters: DashboardFilters = {}) {
               )
               .order("start_time", { ascending: false })
               .abortSignal(controller.signal),
-            supabase
-              .from("storage_units")
-              .select("facility")
-              .not("facility", "is", null)
-              .abortSignal(controller.signal),
           ]);
 
         clearTimeout(timeoutId);
@@ -101,15 +93,14 @@ export function useDashboard(filters: DashboardFilters = {}) {
         if (unitsRes.error) throw unitsRes.error;
         if (bookingsRes.error) throw bookingsRes.error;
         if (callsRes.error) throw callsRes.error;
-        if (facilitiesRes.error) throw facilitiesRes.error;
 
         let units = unitsRes.data || [];
         let bookings = bookingsRes.data || [];
         let allCalls = callsRes.data || [];
 
-        // Get distinct facilities
+        // Extract distinct facilities from units already fetched (no duplicate query needed)
         const facilitiesSet = new Set<string>();
-        facilitiesRes.data?.forEach((item: FacilityItem) => {
+        units.forEach((item: Unit) => {
           if (item.facility) facilitiesSet.add(item.facility);
         });
         const facilities = Array.from(facilitiesSet).sort();

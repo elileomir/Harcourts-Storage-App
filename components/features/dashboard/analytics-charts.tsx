@@ -22,7 +22,6 @@ const BRAND = {
   border:  "#e2e8f0",
 };
 
-const SERIES_COLORS = [BRAND.blue, BRAND.green, BRAND.amber, BRAND.purple, "#f43f5e", "#06b6d4"];
 const FACILITY_COLORS = [BRAND.blue, BRAND.green, BRAND.amber, BRAND.purple];
 const FUNNEL_COLORS = ["#00ADEF", "#22d3ee", "#34d399", "#86efac", "#bbf7d0"];
 

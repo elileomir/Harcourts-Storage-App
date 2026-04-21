@@ -206,10 +206,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // Handle token refresh - invalidate queries to refetch with new token
+      // Handle token refresh - let React Query handle freshness via staleTime
+      // Don't invalidate all queries here - it causes a cascade of refetches
+      // that compete with the token refresh and can trigger AbortController timeouts
       if (event === "TOKEN_REFRESHED") {
-        console.log("[AuthProvider] Token refreshed, invalidating all queries");
-        queryClient.invalidateQueries();
+        console.log("[AuthProvider] Token refreshed - queries will refetch on next access via staleTime");
       }
     });
 

@@ -76,8 +76,9 @@ export function usePageVisibility(): boolean {
               );
             } else if (session) {
               console.log("[PageVisibility] Session refreshed successfully");
-              // Invalidate all queries to refetch with fresh token
-              queryClient.invalidateQueries();
+              // Only refetch queries that have exceeded their staleTime
+              // This avoids re-running expensive queries that were recently fetched
+              queryClient.invalidateQueries({ refetchType: 'active' });
             } else {
               console.log("[PageVisibility] No active session");
             }

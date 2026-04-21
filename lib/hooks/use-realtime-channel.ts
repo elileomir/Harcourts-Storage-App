@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -41,9 +41,38 @@ export function useRealtimeChannel(
   const channelRef = useRef<RealtimeChannel | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const isUnmountedRef = useRef(false);
+  const debounceTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
+  // Debounce realtime callbacks to prevent rapid-fire invalidations
+  // When multiple changes happen in quick succession (e.g., bulk updates),
+  // this coalesces them into a single callback after 1 second of quiet
+  const DEBOUNCE_MS = 1000;
+
+  // Memoize debounced config to avoid re-creating on every render
+  const debouncedConfig = useMemo(() => {
+    return config.map((c) => ({
+      ...c,
+      callback: () => {
+        const key = `${c.schema}.${c.table}.${c.event}`;
+        const existing = debounceTimersRef.current.get(key);
+        if (existing) clearTimeout(existing);
+        debounceTimersRef.current.set(
+          key,
+          setTimeout(() => {
+            if (!isUnmountedRef.current) {
+              c.callback();
+            }
+            debounceTimersRef.current.delete(key);
+          }, DEBOUNCE_MS)
+        );
+      },
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelName]);
 
   useEffect(() => {
     isUnmountedRef.current = false;
+    const debounceTimers = debounceTimersRef.current;
 
     const setupChannel = async () => {
       // Don't setup if component has unmounted
@@ -71,8 +100,8 @@ export function useRealtimeChannel(
       // Create new channel
       let channel = supabase.channel(channelName);
 
-      // Add all event listeners
-      config.forEach(({ event, schema, table, callback }) => {
+      // Add all event listeners with debounced callbacks
+      debouncedConfig.forEach(({ event, schema, table, callback }) => {
         channel = channel.on(
           "postgres_changes" as unknown as "system",
           { event, schema, table } as unknown as Record<string, never>,
@@ -199,6 +228,10 @@ export function useRealtimeChannel(
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = undefined;
       }
+
+      // Clear all debounce timers (use snapshot captured at effect start)
+      debounceTimers.forEach((timer) => clearTimeout(timer));
+      debounceTimers.clear();
 
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };

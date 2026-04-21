@@ -27,14 +27,15 @@ export function useUnits() {
     error,
   } = useQuery({
     queryKey: ["units"],
+    staleTime: 30000, // 30 seconds - prevent cascade refetches from auth/visibility events
     queryFn: async () => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
       try {
         const { data, error } = await supabase
           .from("storage_units")
-          .select("*, bookings(*)")
+          .select("*")
           .order("facility", { ascending: true })
           .order("unit_number", { ascending: true })
           .abortSignal(controller.signal);
