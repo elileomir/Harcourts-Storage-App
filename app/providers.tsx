@@ -9,6 +9,7 @@ import {
 import { useState } from "react";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { PageVisibilityProvider } from "@/components/providers/page-visibility-provider";
+import { VersionCheckProvider } from "@/components/providers/version-check-provider";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -26,7 +27,11 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             // This prevents endless loading when tokens are being refreshed
             // 30 seconds is well below the typical 1-hour token expiry
             staleTime: 30000, // 30 seconds
-            retry: 1, // Fail fast - only 1 retry
+            // Retry twice with exponential backoff so a single blip during a token
+            // refresh or a deploy transition doesn't leave the UI stuck on a spinner.
+            retry: 2,
+            retryDelay: (attempt) =>
+              Math.min(1000 * 2 ** attempt, 8000),
             // Network mode: show cached data even if offline, then refetch when online
             networkMode: "offlineFirst",
             // Add refetch on window focus to recover from stale connections
@@ -80,9 +85,11 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <PageVisibilityProvider>{children}</PageVisibilityProvider>
-      </AuthProvider>
+      <VersionCheckProvider>
+        <AuthProvider>
+          <PageVisibilityProvider>{children}</PageVisibilityProvider>
+        </AuthProvider>
+      </VersionCheckProvider>
     </QueryClientProvider>
   );
 }
