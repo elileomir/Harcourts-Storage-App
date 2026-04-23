@@ -1,9 +1,8 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 
 type AuthContextType = {
@@ -11,235 +10,239 @@ type AuthContextType = {
   session: Session | null;
   role: string | null;
   isLoading: boolean;
+  initError: Error | null;
+  retryInit: () => void;
   signOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Upper bound on auth init. If we exceed it, stop rendering the spinner and surface
+// an error — better to show a "Reload" button than hang on a blank loader.
+const INIT_TIMEOUT_MS = 10_000;
+
+// PGRST116 = "no rows returned" from .single() — the real "not invited" signal.
+// Any other error (RLS failure, network, 5xx) is transient and should NOT sign the user out.
+const NO_ROWS_CODE = "PGRST116";
+
+type ProfileFetchResult =
+  | { kind: "ok"; role: string }
+  | { kind: "not_invited" }
+  | { kind: "error"; error: unknown };
+
+async function fetchProfileRole(
+  supabase: ReturnType<typeof createClient>,
+  userId: string
+): Promise<ProfileFetchResult> {
+  const maxAttempts = 3;
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .single();
+
+    if (!error && data) {
+      return { kind: "ok", role: data.role ?? "user" };
+    }
+
+    if (error && (error.code === NO_ROWS_CODE || error.details?.includes("0 rows"))) {
+      return { kind: "not_invited" };
+    }
+
+    lastError = error;
+    if (attempt < maxAttempts) {
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+  }
+
+  return { kind: "error", error: lastError };
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`${label} timed out after ${ms}ms`)),
+      ms
+    );
+    promise.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      }
+    );
+  });
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
+  const [initError, setInitError] = useState<Error | null>(null);
+  const [initAttempt, setInitAttempt] = useState(0);
   const queryClient = useQueryClient();
   const supabase = createClient();
 
+  const retryInit = useCallback(() => {
+    setInitError(null);
+    setIsLoading(true);
+    setInitAttempt((n) => n + 1);
+  }, []);
+
   useEffect(() => {
-    // Check for existing session on mount
+    let cancelled = false;
+    const sb = supabase;
+
     const initializeAuth = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        setSession(session);
-        setUser(session?.user ?? null);
+      const {
+        data: { session },
+      } = await sb.auth.getSession();
+      if (cancelled) return;
 
-        if (session?.user) {
-          // Always fetch profile to ensure we have the latest role (DB is source of truth)
-          console.log("[AuthProvider] Fetching role from profiles...");
-          let retries = 3;
-          let profileFound = false;
-          while (retries > 0) {
-            const { data: profile, error } = await supabase
-              .from("profiles")
-              .select("role")
-              .eq("id", session.user.id)
-              .single();
+      setSession(session);
+      setUser(session?.user ?? null);
 
-            if (error) {
-              console.error("[AuthProvider] Error fetching profile:", error);
-            } else {
-              console.log("[AuthProvider] Profile fetched:", profile);
-            }
-
-            if (!error && profile) {
-              console.log(
-                "[AuthProvider] Setting role from profile:",
-                profile.role
-              );
-              setRole(profile.role ?? "user");
-              profileFound = true;
-              break;
-            }
-
-            retries--;
-            if (retries > 0) {
-              console.log(
-                `[AuthProvider] Retrying profile fetch... (${retries} attempts left)`
-              );
-              await new Promise((resolve) => setTimeout(resolve, 1000));
-            }
-          }
-
-          // If no profile found (SSO user not invited), deny access
-          if (!profileFound) {
-            console.warn(
-              "[AuthProvider] No profile found - user not invited. Signing out."
-            );
-            await supabase.auth.signOut();
-            window.location.href =
-              "/login?error=access_denied&error_description=You%20must%20be%20invited%20to%20access%20this%20application";
-            return;
-          }
-        } else {
-          setRole(null);
-        }
-
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Error initializing auth:", error);
-        setIsLoading(false);
+      if (!session?.user) {
+        setRole(null);
+        return;
       }
+
+      // Prefer the server-controlled app_metadata role (set by security-update 2026-04-21).
+      // user_metadata is user-writable and no longer authoritative.
+      const appRole = (session.user.app_metadata as { role?: string } | undefined)?.role;
+      if (appRole) {
+        setRole(appRole);
+      }
+
+      // Still fetch from profiles as the source of truth — app_metadata is a hint.
+      const result = await fetchProfileRole(sb, session.user.id);
+      if (cancelled) return;
+
+      if (result.kind === "ok") {
+        setRole(result.role);
+        return;
+      }
+
+      if (result.kind === "not_invited") {
+        console.warn("[AuthProvider] No profile row — user not invited. Signing out.");
+        await sb.auth.signOut();
+        window.location.href =
+          "/login?error=access_denied&error_description=You%20must%20be%20invited%20to%20access%20this%20application";
+        return;
+      }
+
+      // Transient error: keep the user signed in, let them retry / reload.
+      // Do NOT force sign-out — that's what produced the stuck-loading reports
+      // after the RLS policy change.
+      throw result.error instanceof Error
+        ? result.error
+        : new Error("Failed to load user profile");
     };
 
-    initializeAuth();
+    withTimeout(initializeAuth(), INIT_TIMEOUT_MS, "Auth initialization")
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("[AuthProvider] Init failed:", err);
+        setInitError(err instanceof Error ? err : new Error(String(err)));
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
 
-    // Listen for auth changes
+    return () => {
+      cancelled = true;
+    };
+  }, [initAttempt, supabase]);
+
+  useEffect(() => {
+    const sb = supabase;
+
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = sb.auth.onAuthStateChange(async (event, session) => {
       console.log("[AuthProvider] Auth state change:", event);
 
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        // Use metadata role if available to avoid RLS recursion issues
-        const metadataRole = session.user.user_metadata?.role;
-
-        if (metadataRole) {
-          setRole(metadataRole);
+        const appRole = (session.user.app_metadata as { role?: string } | undefined)?.role;
+        if (appRole) {
+          setRole(appRole);
         } else {
-          // Fallback to fetching profile if no metadata role
-          console.log(
-            "[AuthProvider] No metadata role, fetching from profiles..."
-          );
-          let retries = 3;
-          let profileFound = false;
-          while (retries > 0) {
-            const { data: profile, error } = await supabase
-              .from("profiles")
-              .select("role")
-              .eq("id", session.user.id)
-              .single();
-
-            if (error) {
-              console.error("[AuthProvider] Error fetching profile:", error);
-            } else {
-              console.log("[AuthProvider] Profile fetched:", profile);
-            }
-
-            if (!error && profile) {
-              console.log(
-                "[AuthProvider] Setting role from profile:",
-                profile.role
-              );
-              setRole(profile.role ?? "user");
-              profileFound = true;
-              break;
-            }
-
-            retries--;
-            if (retries > 0) {
-              console.log(
-                `[AuthProvider] Retrying profile fetch... (${retries} attempts left)`
-              );
-              await new Promise((resolve) => setTimeout(resolve, 1000));
-            }
-          }
-
-          // If no profile found (SSO user not invited), deny access
-          if (!profileFound) {
+          const result = await fetchProfileRole(sb, session.user.id);
+          if (result.kind === "ok") {
+            setRole(result.role);
+          } else if (result.kind === "not_invited") {
             console.warn(
-              "[AuthProvider] No profile found on auth change - user not invited. Signing out."
+              "[AuthProvider] No profile found on auth change — user not invited. Signing out."
             );
-            await supabase.auth.signOut();
+            await sb.auth.signOut();
             window.location.href =
               "/login?error=access_denied&error_description=You%20must%20be%20invited%20to%20access%20this%20application";
             return;
           }
+          // Transient error: keep whatever role we had, don't sign out.
         }
       } else {
         setRole(null);
       }
 
-      // Handle sign-out
       if (event === "SIGNED_OUT") {
         const authPages = ["/login", "/set-password", "/auth/callback"];
         const isOnAuthPage = authPages.some((page) =>
           window.location.pathname.startsWith(page)
         );
-
         if (!isOnAuthPage) {
-          console.log("[AuthProvider] User signed out, redirecting to login");
-          // Use window.location for full reload to avoid hydration issues
           window.location.href = "/login";
         }
       }
 
-      // Handle password update (invite flow completion)
-      if (event === "USER_UPDATED") {
-        console.log("[AuthProvider] User updated (password set)");
-        // Don't refresh here - let the set-password page handle redirect
-      }
-
-      // Handle sign-in - ONLY redirect from auth pages to dashboard
-      // DO NOT reload on app pages - let React Query and middleware handle freshness
       if (event === "SIGNED_IN") {
         const authPages = ["/login", "/set-password", "/auth/callback"];
         const isOnAuthPage = authPages.some((page) =>
           window.location.pathname.startsWith(page)
         );
-
         if (isOnAuthPage) {
-          console.log(
-            "[AuthProvider] Login successful, redirecting to dashboard. Path:",
-            window.location.pathname
-          );
           window.location.href = "/dashboard";
-        } else {
-          console.log(
-            "[AuthProvider] SIGNED_IN on app page - no action needed. Path:",
-            window.location.pathname
-          );
         }
       }
 
-      // Handle token refresh - let React Query handle freshness via staleTime
-      // Don't invalidate all queries here - it causes a cascade of refetches
-      // that compete with the token refresh and can trigger AbortController timeouts
+      // Targeted invalidation so profile/session-scoped queries pick up the new token,
+      // but we don't re-run every list/chart query and trigger the cascade that
+      // commit c98838f removed.
       if (event === "TOKEN_REFRESHED") {
-        console.log("[AuthProvider] Token refreshed - queries will refetch on next access via staleTime");
+        queryClient.invalidateQueries({ queryKey: ["profile"] });
+        queryClient.invalidateQueries({ queryKey: ["session"] });
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [router, queryClient, supabase]);
+  }, [queryClient, supabase]);
 
   const signOut = async () => {
     try {
-      console.log("[AuthProvider] Signing out...");
-      // Clear React Query cache before signing out
       queryClient.clear();
-
-      // Sign out - this will trigger SIGNED_OUT event which handles redirect
       await supabase.auth.signOut();
-
-      console.log("[AuthProvider] Sign-out completed");
-      // The onAuthStateChange handler will receive SIGNED_OUT event and redirect to /login
-      // No need to manually redirect here
     } catch (error) {
       console.error("[AuthProvider] Error signing out:", error);
-      // If sign-out fails, still try to redirect to login
       window.location.href = "/login";
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, role, isLoading, signOut }}>
+    <AuthContext.Provider
+      value={{ user, session, role, isLoading, initError, retryInit, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   );

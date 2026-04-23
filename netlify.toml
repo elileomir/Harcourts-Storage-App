@@ -4,3 +4,27 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+# HTML must never be long-cached — otherwise post-deploy browsers keep referencing
+# hashed JS chunks that no longer exist, leaving users stuck on a loading state.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Next.js hashes every file under _next/static, so these are safe to cache forever.
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# The version endpoint must never be cached — the client polls it to detect stale builds.
+[[headers]]
+  for = "/api/version"
+  [headers.values]
+    Cache-Control = "no-store, must-revalidate"
+
+[[headers]]
+  for = "/harcourts-logo.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"

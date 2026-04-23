@@ -4,11 +4,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter, usePathname } from "next/navigation";
-import { LogOut, Home, ChevronRight } from "lucide-react";
+import { LogOut, Home, ChevronRight, AlertTriangle } from "lucide-react";
 import { motion, useScroll, useMotionValue, useTransform } from "framer-motion";
 import { useEffect } from "react";
 import { InactivityProvider } from "@/components/providers/inactivity-provider";
 import { GlobalNotifications } from "@/components/features/notifications/global-notifications";
+import { useAuth } from "@/components/providers/auth-provider";
 
 function useBoundedScroll(threshold: number) {
   const { scrollY } = useScroll();
@@ -57,6 +58,8 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const { scrollYBoundedProgress } = useBoundedScroll(100);
+  const { initError, retryInit } = useAuth();
+  const buildId = process.env.NEXT_PUBLIC_BUILD_ID;
 
   const headerY = useTransform(scrollYBoundedProgress, [0, 1], [0, -80]);
   const headerOpacity = useTransform(scrollYBoundedProgress, [0, 1], [1, 0]);
@@ -151,13 +154,47 @@ export default function DashboardLayout({
 
         {/* Main Content */}
         <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-12">
-          {children}
+          {initError ? (
+            <div className="mx-auto mt-12 max-w-md rounded-2xl border border-amber-200 bg-white p-6 shadow-sm">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 flex-shrink-0 text-amber-500" />
+                <div>
+                  <h2 className="text-base font-semibold text-slate-900">
+                    We couldn&apos;t finish loading your session
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    This usually clears up with a retry or a reload —
+                    especially right after a release.
+                  </p>
+                  <div className="mt-4 flex gap-2">
+                    <button
+                      onClick={retryInit}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                    >
+                      Try again
+                    </button>
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
+                    >
+                      Reload app
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            children
+          )}
         </main>
 
         {/* Minimal Footer */}
         <footer className="py-6 text-center">
           <p className="text-sm text-slate-400">
             © {new Date().getFullYear()} Harcourts Ulverstone &amp; Penguin
+            {buildId && (
+              <span className="ml-2 text-slate-300">· v{buildId.slice(0, 8)}</span>
+            )}
           </p>
         </footer>
       </InactivityProvider>
