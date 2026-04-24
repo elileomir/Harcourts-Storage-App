@@ -138,12 +138,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Transient error: keep the user signed in, let them retry / reload.
-      // Do NOT force sign-out — that's what produced the stuck-loading reports
-      // after the RLS policy change.
-      throw result.error instanceof Error
-        ? result.error
-        : new Error("Failed to load user profile");
+      // Transient error fetching profiles (network blip, RLS hiccup, 5xx).
+      // Graceful degradation order:
+      //   1. JWT already gave us app_metadata.role → use that, app works normally.
+      //   2. No role anywhere yet → fall back to "user". The user sees a minimal
+      //      (non-admin) view instead of a recovery card. Admins still read as
+      //      "user" in this branch, but that's recoverable on the next token
+      //      refresh, and it's strictly better than leaving everyone stuck on
+      //      a spinner/error screen because a single /rest/v1/profiles call
+      //      flaked out.
+      // We only surface initError (the recovery card) when there is no session
+      // at all, which is handled above by the early `if (!session?.user) return`.
+      if (appRole) {
+        console.warn(
+          "[AuthProvider] Transient profile fetch error; using JWT app_metadata.role.",
+          result.error
+        );
+        return;
+      }
+
+      console.warn(
+        "[AuthProvider] Transient profile fetch error and no app_metadata.role; defaulting to 'user'.",
+        result.error
+      );
+      setRole("user");
     };
 
     withTimeout(initializeAuth(), INIT_TIMEOUT_MS, "Auth initialization")
