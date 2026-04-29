@@ -15,6 +15,8 @@ import {
   Receipt,
   Clock,
   PhoneIncoming,
+  PhoneCall,
+  PhoneOutgoing,
   BookOpen,
   LayoutDashboard,
 } from "lucide-react";
@@ -129,7 +131,7 @@ export default function DashboardHub() {
         className="grid grid-cols-1 md:grid-cols-2 gap-5 auto-rows-[minmax(280px,auto)]"
       >
         {/* HERO: Storage Management - Featured Tool */}
-        <motion.div variants={item} className="group relative">
+        <motion.div variants={item} className="group relative md:row-span-2">
           <div className="relative h-full bg-gradient-to-br from-[#00ADEF] to-[#0088bc] rounded-2xl p-8 text-white overflow-hidden shadow-xl shadow-sky-500/20 transition-all duration-300 hover:shadow-2xl hover:shadow-sky-500/30 flex flex-col justify-between border border-sky-400/20">
             {/* Content */}
             <div className="relative z-10 flex flex-col gap-5">
@@ -227,6 +229,62 @@ export default function DashboardHub() {
               >
                 <Receipt className="w-3.5 h-3.5" />
                 View Approvals History →
+              </button>
+            </div>
+          </Link>
+        </motion.div>
+
+        {/* Penny Outbound */}
+        <motion.div variants={item} className="group relative">
+          <Link href="/dashboard/penny-outbound" className="block h-full">
+            <div className="relative h-full bg-gradient-to-br from-sky-500/5 to-blue-500/5 rounded-2xl p-8 overflow-hidden shadow-sm border border-sky-500/20 transition-all duration-300 hover:shadow-md hover:border-sky-500/40 hover:-translate-y-1 flex flex-col justify-between">
+              <div className="absolute top-0 right-0 p-4 opacity-5">
+                <PhoneCall className="w-32 h-32 text-sky-600" />
+              </div>
+
+              {/* Content */}
+              <div className="relative z-10 flex flex-col gap-5">
+                <div className="inline-flex items-center gap-2 self-start bg-sky-50 px-3 py-1.5 rounded-full border border-sky-100">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500" />
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-sky-700">
+                    New Feature
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <h2 className="font-display text-2xl font-bold tracking-tight text-[#001F49]">
+                    Penny Outbound
+                  </h2>
+                  <p className="text-slate-500 text-base max-w-md leading-relaxed">
+                    Let Penny — your AI voice agent — call referees and run
+                    reference checks. Trigger from a form, replay any call.
+                  </p>
+                </div>
+              </div>
+
+              <div className="relative z-10 mt-6 pt-5 border-t border-sky-100 flex items-center justify-between group-hover:border-sky-200 transition-colors">
+                <span className="font-semibold text-base text-sky-700">
+                  Make a call
+                </span>
+                <div className="w-9 h-9 rounded-full bg-sky-100 flex items-center justify-center group-hover:bg-sky-200 group-hover:text-sky-800 transition-all duration-300">
+                  <ArrowRight className="w-4 h-4" />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  window.location.href = "/dashboard/penny-outbound-history";
+                }}
+                className="relative z-20 mt-3 flex items-center gap-2 text-xs font-semibold text-sky-600 hover:text-sky-800 transition-colors cursor-pointer"
+              >
+                <PhoneOutgoing className="w-3.5 h-3.5" />
+                View Call History →
               </button>
             </div>
           </Link>
