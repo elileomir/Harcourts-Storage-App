@@ -6,6 +6,9 @@ import {
   PhoneCall,
   PhoneOff,
   TriangleAlert,
+  CheckCircle2,
+  Clock,
+  XCircle,
 } from "lucide-react";
 import { useReducedMotion } from "framer-motion";
 import type { RetellCallStatus } from "@/lib/penny-outbound/types";
@@ -53,6 +56,31 @@ const STYLES: Record<string, StatusStyle> = {
     label: "Failed",
     classes: "bg-red-50 text-red-700 border-red-200",
     Icon: TriangleAlert,
+    animate: "none",
+  },
+  /* Reference check statuses */
+  complete: {
+    label: "Complete",
+    classes: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    Icon: CheckCircle2,
+    animate: "none",
+  },
+  deferred: {
+    label: "Deferred",
+    classes: "bg-amber-50 text-amber-700 border-amber-200",
+    Icon: Clock,
+    animate: "none",
+  },
+  declined: {
+    label: "Declined",
+    classes: "bg-red-50 text-red-700 border-red-200",
+    Icon: XCircle,
+    animate: "none",
+  },
+  no_answer: {
+    label: "No answer",
+    classes: "bg-gray-100 text-gray-600 border-gray-200",
+    Icon: PhoneOff,
     animate: "none",
   },
 };

@@ -59,6 +59,8 @@ export async function POST(request: NextRequest) {
     const dynamicVariables = source.dynamic_variables as RetellDynamicVariables;
 
     // === Insert NEW audit row (status: 'initiating') ===
+    const recallEnv = readRetellEnv();
+
     const { data: inserted, error: insertError } = await supabase
       .from("penny_outbound_calls")
       .insert({
@@ -75,6 +77,7 @@ export async function POST(request: NextRequest) {
         call_mode: source.call_mode,
         retell_call_status: "initiating",
         dynamic_variables: dynamicVariables,
+        from_number: source.from_number || recallEnv?.fromNumber || null,
       })
       .select("id")
       .single();

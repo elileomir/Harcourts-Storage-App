@@ -108,6 +108,7 @@ export interface PennyOutboundCallRow {
   tenancy_landlord_type: LandlordType | null;
   application_id: string | null;
   call_mode: CallMode;
+  from_number: string | null;
   retell_call_id: string | null;
   retell_call_status: RetellCallStatus | string;
   error_message: string | null;

@@ -14,11 +14,13 @@ import {
   Clock,
   Globe,
 } from "lucide-react";
-import type { PennyOutboundCallRow } from "@/lib/penny-outbound/types";
+import type { CallWithReference } from "@/lib/penny-outbound/reference-types";
 import { StatusBadge } from "./StatusBadge";
+import { ReferenceResultCard } from "./ReferenceResultCard";
+import { TranscriptViewer } from "./TranscriptViewer";
 
 interface CallDetailDrawerProps {
-  call: PennyOutboundCallRow | null;
+  call: CallWithReference | null;
   onClose: () => void;
 }
 
@@ -82,6 +84,15 @@ export function CallDetailDrawer({ call, onClose }: CallDetailDrawerProps) {
 
   if (!call) return null;
 
+  // Extract transcript from reference check response_data
+  const transcript =
+    call.reference_check?.response_data?.call?.transcript_with_tool_calls ??
+    call.reference_check?.response_data?.call?.transcript_object ??
+    [];
+
+  const agentName =
+    call.reference_check?.response_data?.call?.agent_name ?? "Penny";
+
   return (
     <div
       className="fixed inset-0 z-50 flex justify-end bg-gray-900/40 backdrop-blur-sm"
@@ -105,7 +116,12 @@ export function CallDetailDrawer({ call, onClose }: CallDetailDrawerProps) {
               {call.applicant_name}
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">{formatDate(call.created_at)}</p>
-            <div className="mt-2"><StatusBadge status={call.retell_call_status} /></div>
+            <div className="flex items-center gap-2 mt-2">
+              <StatusBadge status={call.retell_call_status} />
+              {call.reference_check?.status && (
+                <StatusBadge status={call.reference_check.status} />
+              )}
+            </div>
           </div>
           <button
             ref={closeBtnRef}
@@ -195,6 +211,9 @@ export function CallDetailDrawer({ call, onClose }: CallDetailDrawerProps) {
               {call.to_number && call.call_mode === "phone" && (
                 <Row label="To number" value={call.to_number} mono />
               )}
+              {call.from_number && (
+                <Row label="From number" value={call.from_number} mono />
+              )}
               <Row
                 label="Created"
                 value={
@@ -206,6 +225,19 @@ export function CallDetailDrawer({ call, onClose }: CallDetailDrawerProps) {
               />
             </div>
           </section>
+
+          {/* ── Reference Check Results ───────────────── */}
+          {call.reference_check && (
+            <ReferenceResultCard referenceCheck={call.reference_check} />
+          )}
+
+          {/* ── Transcript ────────────────────────────── */}
+          {transcript.length > 0 && (
+            <TranscriptViewer
+              transcript={transcript}
+              agentName={agentName}
+            />
+          )}
 
           {/* Retell metadata */}
           {call.retell_call_id && (

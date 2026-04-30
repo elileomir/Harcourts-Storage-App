@@ -1,15 +1,26 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Eye, RotateCcw, Trash2, MapPin, Clock, User, Phone } from "lucide-react";
-import type { PennyOutboundCallRow } from "@/lib/penny-outbound/types";
+import {
+  Eye,
+  RotateCcw,
+  Trash2,
+  MapPin,
+  Clock,
+  User,
+  Phone,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
+import type { CallWithReference } from "@/lib/penny-outbound/reference-types";
+import { getReferenceStatusLabel } from "@/lib/penny-outbound/reference-types";
 import { StatusBadge } from "./StatusBadge";
 
 interface CallHistoryCardProps {
-  call: PennyOutboundCallRow;
-  onView: (call: PennyOutboundCallRow) => void;
-  onRecall: (call: PennyOutboundCallRow) => void;
-  onDelete: (call: PennyOutboundCallRow) => void;
+  call: CallWithReference;
+  onView: (call: CallWithReference) => void;
+  onRecall: (call: CallWithReference) => void;
+  onDelete: (call: CallWithReference) => void;
   recallInFlight: boolean;
 }
 
@@ -24,6 +35,36 @@ function timeAgo(dateStr: string): string {
   return `${days}d ago`;
 }
 
+function ReferenceIndicator({ status }: { status: string | null | undefined }) {
+  if (!status) return null;
+
+  const isComplete = status === "complete";
+  const isDeferred = status === "deferred";
+
+  const dotColor = isComplete
+    ? "bg-emerald-500"
+    : isDeferred
+      ? "bg-amber-500"
+      : "bg-gray-400";
+
+  const Icon = isComplete ? CheckCircle2 : AlertCircle;
+  const textColor = isComplete
+    ? "text-emerald-600"
+    : isDeferred
+      ? "text-amber-600"
+      : "text-gray-500";
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-[10px] font-semibold ${textColor}`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+      <Icon className="w-3 h-3" aria-hidden="true" />
+      {getReferenceStatusLabel(status)}
+    </span>
+  );
+}
+
 export function CallHistoryCard({
   call,
   onView,
@@ -35,6 +76,8 @@ export function CallHistoryCard({
     call.call_mode === "web"
       ? "Web test"
       : call.to_number || "—";
+
+  const refStatus = call.reference_check?.status ?? null;
 
   return (
     <motion.div
@@ -65,14 +108,22 @@ export function CallHistoryCard({
                   <span className="flex items-center gap-1">
                     <User className="w-3 h-3" aria-hidden="true" />
                     {call.referee_name}
-                    <span className="text-gray-400"> · {call.referee_relationship}</span>
+                    <span className="text-gray-400">· {call.referee_relationship}</span>
                   </span>
                   <span className="flex items-center gap-1">
                     <Clock className="w-3 h-3" aria-hidden="true" />
                     {timeAgo(call.created_at)}
                   </span>
                 </div>
-                <p className="mt-2 text-xs text-gray-600 font-mono">{phoneOrWeb}</p>
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  <p className="text-xs text-gray-600 font-mono">{phoneOrWeb}</p>
+                  {refStatus && (
+                    <>
+                      <span className="text-gray-300">·</span>
+                      <ReferenceIndicator status={refStatus} />
+                    </>
+                  )}
+                </div>
               </div>
               <div className="flex-shrink-0">
                 <StatusBadge status={call.retell_call_status} />

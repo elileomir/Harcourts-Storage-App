@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
@@ -18,48 +18,91 @@ import {
   recallPennyOutbound,
   deletePennyOutbound,
 } from "@/lib/penny-outbound/api";
+import type { CallWithReference, ReferenceCheckRow } from "@/lib/penny-outbound/reference-types";
 import type { PennyOutboundCallRow } from "@/lib/penny-outbound/types";
 import { CallHistoryCard } from "@/components/penny-outbound/CallHistoryCard";
 import { CallDetailDrawer } from "@/components/penny-outbound/CallDetailDrawer";
+import { StatsBar } from "@/components/penny-outbound/StatsBar";
+
+type FilterTab = "all" | "completed" | "deferred" | "failed";
+
+const TABS: { key: FilterTab; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "completed", label: "Completed" },
+  { key: "deferred", label: "Deferred" },
+  { key: "failed", label: "Failed" },
+];
 
 export default function PennyOutboundHistoryPage() {
-  const [calls, setCalls] = useState<PennyOutboundCallRow[]>([]);
+  const [calls, setCalls] = useState<CallWithReference[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selected, setSelected] = useState<PennyOutboundCallRow | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<PennyOutboundCallRow | null>(null);
+  const [selected, setSelected] = useState<CallWithReference | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<CallWithReference | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [recallingId, setRecallingId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<FilterTab>("all");
 
-  // ─── Fetch ─────────────────────────────────────
+  // ─── Fetch joined data ───────────────────────────
   const fetchCalls = useCallback(async () => {
     setLoading(true);
     const supabase = createClient();
-    const { data, error } = await supabase
+
+    // Fetch outbound calls
+    const { data: callsData, error: callsError } = await supabase
       .from("penny_outbound_calls")
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Error fetching penny calls:", error);
+    if (callsError) {
+      console.error("Error fetching penny calls:", callsError);
       toast.error("Couldn't load call history", {
-        description: error.message?.slice(0, 200),
+        description: callsError.message?.slice(0, 200),
       });
       setLoading(false);
       return;
     }
 
-    setCalls((data as PennyOutboundCallRow[]) || []);
+    // Fetch reference checks
+    const { data: refsData, error: refsError } = await supabase
+      .from("reference_checks")
+      .select("*");
+
+    if (refsError) {
+      console.error("Error fetching reference checks:", refsError);
+      // Non-fatal — continue with calls only
+    }
+
+    // Build a lookup: outbound_call_id → ReferenceCheckRow
+    const refsByCallId = new Map<string, ReferenceCheckRow>();
+    if (refsData) {
+      for (const ref of refsData as ReferenceCheckRow[]) {
+        if (ref.outbound_call_id) {
+          refsByCallId.set(ref.outbound_call_id, ref);
+        }
+      }
+    }
+
+    // Merge
+    const merged: CallWithReference[] = ((callsData as PennyOutboundCallRow[]) || []).map(
+      (call) => ({
+        ...call,
+        reference_check: refsByCallId.get(call.id) ?? null,
+      })
+    );
+
+    setCalls(merged);
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+  const fetchStarted = useRef<boolean | null>(null);
+  if (fetchStarted.current == null) {
+    fetchStarted.current = true;
     void fetchCalls();
-  }, [fetchCalls]);
+  }
 
   // ─── Recall ────────────────────────────────────
-  const handleRecall = async (call: PennyOutboundCallRow) => {
+  const handleRecall = async (call: CallWithReference) => {
     if (recallingId) return;
     setRecallingId(call.id);
     const toastId = toast.loading(`Recalling Penny for ${call.referee_name}…`);
@@ -73,14 +116,12 @@ export default function PennyOutboundHistoryPage() {
           : `Penny is calling ${call.referee_name} again`,
         { id: toastId }
       );
-      // Refetch to pick up the new row at the top.
       await fetchCalls();
     } else {
       toast.error("Penny couldn't recall", {
         id: toastId,
         description: result.error?.slice(0, 200),
       });
-      // Still refetch — the audit row was created with status=failed.
       await fetchCalls();
     }
     setRecallingId(null);
@@ -94,7 +135,6 @@ export default function PennyOutboundHistoryPage() {
     const result = await deletePennyOutbound(deleteTarget.id);
 
     if (result.success) {
-      // Optimistic removal.
       setCalls((prev) => prev.filter((c) => c.id !== deleteTarget.id));
       toast.success("Call record removed");
     } else {
@@ -108,16 +148,36 @@ export default function PennyOutboundHistoryPage() {
 
   // ─── Filter ────────────────────────────────────
   const filtered = useMemo(() => {
+    let result = calls;
+
+    // Tab filter
+    if (activeTab === "completed") {
+      result = result.filter((c) => c.reference_check?.status === "complete");
+    } else if (activeTab === "deferred") {
+      result = result.filter((c) => c.reference_check?.status === "deferred");
+    } else if (activeTab === "failed") {
+      result = result.filter(
+        (c) =>
+          c.retell_call_status === "failed" ||
+          c.reference_check?.status === "declined" ||
+          c.reference_check?.status === "no_answer"
+      );
+    }
+
+    // Search filter
     const term = searchTerm.trim().toLowerCase();
-    if (!term) return calls;
-    return calls.filter(
-      (c) =>
-        c.applicant_name.toLowerCase().includes(term) ||
-        c.property_address.toLowerCase().includes(term) ||
-        c.referee_name.toLowerCase().includes(term) ||
-        (c.to_number || "").toLowerCase().includes(term)
-    );
-  }, [calls, searchTerm]);
+    if (term) {
+      result = result.filter(
+        (c) =>
+          c.applicant_name.toLowerCase().includes(term) ||
+          c.property_address.toLowerCase().includes(term) ||
+          c.referee_name.toLowerCase().includes(term) ||
+          (c.to_number || "").toLowerCase().includes(term)
+      );
+    }
+
+    return result;
+  }, [calls, searchTerm, activeTab]);
 
   return (
     <div className="max-w-5xl mx-auto pb-12 w-full">
@@ -133,7 +193,7 @@ export default function PennyOutboundHistoryPage() {
               Penny call history
             </h1>
             <p className="text-gray-500 text-base mt-2">
-              Every outbound call Penny has placed. Anyone signed in can view, recall, or delete.
+              Every outbound call Penny has placed, with reference check results and transcripts.
             </p>
           </div>
           <Link
@@ -146,8 +206,30 @@ export default function PennyOutboundHistoryPage() {
         </div>
       </motion.div>
 
-      {/* Search */}
-      <div className="mb-6">
+      {/* Stats Bar */}
+      {!loading && calls.length > 0 && <StatsBar calls={calls} />}
+
+      {/* Search + Filter Tabs */}
+      <div className="mb-6 space-y-4">
+        {/* Tabs */}
+        <div className="flex items-center gap-1 bg-gray-100/80 p-1 rounded-lg w-fit">
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-harcourts-blue ${
+                activeTab === tab.key
+                  ? "bg-white text-[#001F49] shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Search */}
         <div className="relative">
           <Search
             className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
@@ -177,14 +259,16 @@ export default function PennyOutboundHistoryPage() {
             aria-hidden="true"
           />
           <h2 className="text-base font-semibold text-[#001F49]">
-            {searchTerm ? "No calls match your search" : "No calls yet"}
+            {searchTerm || activeTab !== "all"
+              ? "No calls match your filters"
+              : "No calls yet"}
           </h2>
           <p className="text-gray-500 text-sm mt-1 max-w-sm mx-auto">
-            {searchTerm
-              ? "Try a different search term."
+            {searchTerm || activeTab !== "all"
+              ? "Try a different search term or filter."
               : "When you ask Penny to make a call, it appears here. Everyone on your team can see and recall calls."}
           </p>
-          {!searchTerm && (
+          {!searchTerm && activeTab === "all" && (
             <Link
               href="/dashboard/penny-outbound"
               className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-harcourts-blue hover:bg-harcourts-blue-dark text-white rounded-lg text-sm font-semibold transition-colors duration-200 cursor-pointer min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-harcourts-blue focus-visible:ring-offset-2"
