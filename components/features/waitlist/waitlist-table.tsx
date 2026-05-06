@@ -1,5 +1,7 @@
 "use client";
 
+import { useCallback, useState, useMemo } from "react";
+
 import {
   Table,
   TableBody,
@@ -26,11 +28,16 @@ import {
   Trash2,
   Lightbulb,
   Filter,
+  PhoneOutgoing,
+  Loader2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
 import { WaitlistRequest, useWaitlist } from "@/hooks/use-waitlist";
 import { exportToExcel } from "@/lib/excel-utils";
+import { CallDetailsDrawer } from "@/components/features/analytics/call-details-drawer";
+import { CallLog } from "@/hooks/use-analytics";
+import { createClient } from "@/lib/supabase/client";
 
 import {
   Select,
@@ -40,7 +47,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { useState, useMemo } from "react";
+
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { Unit } from "@/hooks/use-units";
 import {
@@ -69,6 +76,12 @@ export function WaitlistTable({
   const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const [selectedFacilities, setSelectedFacilities] = useState<string[]>([]);
+
+  // Call details drawer state
+  const [callDrawerOpen, setCallDrawerOpen] = useState(false);
+  const [selectedCallData, setSelectedCallData] = useState<CallLog | null>(null);
+  const [selectedWaitlistContext, setSelectedWaitlistContext] = useState<{ fullName: string; facility: string; calledAt: string } | null>(null);
+  const [loadingCallId, setLoadingCallId] = useState<string | null>(null);
 
   const { updateWaitlistRequestsStatus, deleteWaitlistRequests } =
     useWaitlist();
@@ -205,6 +218,30 @@ export function WaitlistTable({
         return "bg-gray-100 text-gray-800";
     }
   };
+
+  const handleViewCall = useCallback(async (request: WaitlistRequest) => {
+    if (!request.call_id_reference) return;
+    setLoadingCallId(request.call_id_reference);
+    try {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("call_analytics")
+        .select("*")
+        .eq("call_id", request.call_id_reference)
+        .single();
+      if (data) {
+        setSelectedCallData(data as CallLog);
+        setSelectedWaitlistContext({
+          fullName: request.full_name,
+          facility: Array.isArray(request.facility) ? request.facility.join(", ") : request.facility,
+          calledAt: request.penny_called_at || request.updated_at,
+        });
+        setCallDrawerOpen(true);
+      }
+    } finally {
+      setLoadingCallId(null);
+    }
+  }, []);
 
   return (
     <>
@@ -349,13 +386,14 @@ export function WaitlistTable({
               <TableHead>Facility</TableHead>
               <TableHead>Preferred Date</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Penny Called</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredRequests.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="h-24 text-center">
+                <TableCell colSpan={11} className="h-24 text-center">
                   No waitlist requests found.
                 </TableCell>
               </TableRow>
@@ -460,6 +498,33 @@ export function WaitlistTable({
                         </SelectContent>
                       </Select>
                     </TableCell>
+                    <TableCell>
+                      {request.penny_called_at ? (
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(request.penny_called_at), "MMM d, yyyy h:mm a")}
+                          </span>
+                          {request.call_id_reference && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2 text-xs bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                              onClick={() => handleViewCall(request)}
+                              disabled={loadingCallId === request.call_id_reference}
+                            >
+                              {loadingCallId === request.call_id_reference ? (
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              ) : (
+                                <PhoneOutgoing className="h-3 w-3 mr-1" />
+                              )}
+                              View Call
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -506,6 +571,14 @@ export function WaitlistTable({
         description="Are you sure you want to delete this waitlist request? This action cannot be undone."
         confirmText="Delete"
         variant="danger"
+      />
+
+      {/* Call Details Drawer for viewing outbound call data */}
+      <CallDetailsDrawer
+        call={selectedCallData}
+        open={callDrawerOpen}
+        onOpenChange={setCallDrawerOpen}
+        waitlistContext={selectedWaitlistContext}
       />
     </>
   );

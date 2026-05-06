@@ -35,7 +35,8 @@ export function CallLogsTable({ calls = [] }: CallLogsTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Date & Time</TableHead>
+            <TableHead>Date &amp; Time</TableHead>
+            <TableHead>Type</TableHead>
             <TableHead>Platform</TableHead>
             <TableHead>Cost</TableHead>
             <TableHead>Duration</TableHead>
@@ -49,7 +50,7 @@ export function CallLogsTable({ calls = [] }: CallLogsTableProps) {
         <TableBody>
           {calls.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={9} className="h-24 text-center">
+              <TableCell colSpan={10} className="h-24 text-center">
                 No call logs available
               </TableCell>
             </TableRow>
@@ -60,6 +61,18 @@ export function CallLogsTable({ calls = [] }: CallLogsTableProps) {
                   {call.start_time
                     ? format(new Date(call.start_time), "MMM d, yyyy h:mm a")
                     : "-"}
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant="outline"
+                    className={`${
+                      call.type === "outbound"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                        : "bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-50"
+                    }`}
+                  >
+                    {call.type === "outbound" ? "Outbound" : "Inbound"}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <Badge

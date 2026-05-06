@@ -1,82 +1,66 @@
 **To:** Harcourts Storage Team  
 **From:** Development Team  
-**Date:** 21 April 2026  
-**Subject:** ✅ Platform Update — Dashboard Loading Fixed + Security Hardened  
+**Date:** 6 May 2026  
+**Subject:** ✅ New Feature — Waitlist Call Insights + Analytics Inbound/Outbound Filters
 
 ---
 
-Hi team,
+Hi Brad,
 
-We've completed a significant round of improvements to the Harcourts Storage platform. This update addresses the dashboard loading issue you reported, as well as a series of security improvements to better protect your business data. Everything has been tested, verified, and is live.
+We've just deployed an update that connects two parts of the system that were previously separate — **Waitlist Management** and **Call Analytics**. Previously, when Penny made an outbound call to someone on the waitlist, the call data and the waitlist entry lived in different parts of the dashboard with no visible connection. Now they're linked together, so you can see exactly what happened on the call without leaving the waitlist page, and your Call Analytics page now clearly distinguishes between inbound calls (people calling you) and outbound calls (Penny calling people on the waitlist).
 
-Here's a plain-English breakdown of what changed and what it means for you.
-
----
-
-## 🚀 The Big Fix: Dashboard No Longer Gets Stuck Loading
-
-**The problem:** The Storage Units dashboard was intermittently getting stuck on a loading screen. This was most noticeable when switching between browser tabs or when a new booking came in through the AI agent — the entire page would freeze and require a manual refresh.
-
-**What was causing it:** The dashboard was trying to do too much work at once. Every time you switched tabs, refreshed your session, or a real-time update arrived (like a new booking), the system would restart all its data requests from scratch simultaneously. Under the wrong conditions, these requests would time out and leave the page stuck.
-
-**What we fixed:**
-- The dashboard now remembers data it recently loaded (for up to 1 minute) rather than re-fetching it every single time something minor changes.
-- Real-time notifications (e.g. a new booking arriving) are now grouped together — instead of triggering 5 separate reloads in 3 seconds, they trigger a single smart refresh.
-- Switching browser tabs no longer causes the whole dashboard to reload from scratch.
-- Heavy calculations (like occupancy rates and call analytics charts) are now done on the database server before being sent to your browser, rather than your browser having to crunch thousands of rows of data itself.
-
-**Result:** The dashboard loads faster, stays stable under normal use, and no longer gets stuck.
+Everything below is **live now** at: 🔗 [https://pmapp.hup.net.au/login](https://pmapp.hup.net.au/login)
 
 ---
 
-## 🛡️ Security: Admin Access Now Properly Protected
+## 📊 Call Analytics — Inbound vs Outbound Filters
 
-**The problem:** There was a gap in how "admin" access was controlled. In theory, any user could have granted themselves full administrator access by editing a setting in their own browser — no Harcourts IT approval required.
+The Call Analytics page now lets you filter calls by direction. Previously, all calls appeared in one list with no way to tell which ones were inbound (someone calling your facilities) versus outbound (Penny calling a waitlisted client).
 
-**What we fixed:** Admin status is now exclusively controlled server-side by the development team or Harcourts IT. No user can promote themselves — it requires a deliberate action from someone with database access (via the Supabase dashboard or a SQL command). All 6 existing admin accounts have been verified and migrated to the new secure system automatically — no action needed from them.
+**What's new:**
 
-**Going forward:** To grant admin access to a new staff member, simply provide their email address and we'll update it directly in the database. It takes under 2 minutes.
+- **Filter tabs** at the top of the page: **All Calls**, **Inbound**, and **Outbound** — each showing a count so you can see the volume at a glance
+- **Type badges** on every call in the table — a blue "Inbound" or green "Outbound" label next to each entry
+- **Outbound Calls stat card** — when outbound calls exist, a new summary card appears showing the total outbound count and average call duration
+- **Type indicator in call details** — when you open any call, the drawer now shows whether it was inbound or outbound right in the header
+
+**Before:** All 319 calls appeared in one undifferentiated list — no way to tell if a call was someone ringing in or Penny ringing out.
+
+**After:** One click on the "Outbound" tab filters to just the waitlist calls. You can immediately see how those conversations went, what was discussed, and how long they lasted.
 
 ---
 
-## 🔒 Security: Your Business Data Is Now Better Protected
+## 📋 Waitlist — "Penny Called" Column + View Call Details
 
-**The problem:** Previously, the AI booking agent (ElevenLabs) used broad access permissions that also meant external parties with the right technical knowledge could read sensitive business data — including call analytics, staff profiles, and platform financial settings — without being logged in.
+The Waitlist page now shows whether Penny has called each person and lets you view the full call results without leaving the page.
 
-**What we fixed:** We applied the principle of least privilege — every system or user now has access to only exactly what they need, nothing more:
+**What's new:**
 
-| What's now protected | Who can still access it |
+- **"Penny Called" column** — appears after the Status column in the waitlist table. When Penny has called someone, it shows the exact date and time
+- **"View Call" button** — on any row where Penny has made a call, a green button appears. Clicking it opens a detail panel showing everything about that call:
+  - What Penny and the person discussed (the AI-generated summary)
+  - The customer satisfaction rating
+  - Whether the call was brand-compliant
+  - Whether a handoff to a human was needed
+  - The full word-for-word transcript in a chat-bubble format
+- **Waitlist context card** — when viewing a call from the waitlist, you'll see a card at the top showing who was called, which facility it was about, and when the call happened — so you always have context
+
+**Before:** You could see "Contacted" in the status column, but had no way to know what Penny discussed, whether the person was interested, or what happened on the call — you'd have to go to a completely different page and search.
+
+**After:** Click "View Call" on any waitlist entry → instantly see the full call details, transcript, and outcome, all in one place.
+
+---
+
+## 📈 Waitlist Stats — Outbound Call Metrics
+
+A new stat card has been added to the waitlist dashboard:
+
+| Metric | What it tells you |
 |---|---|
-| Call analytics & revenue data | Logged-in staff only |
-| Staff profiles | Logged-in staff only |
-| Platform pricing settings | Logged-in staff only |
-| Storage unit availability | AI agent ✅ (still works) |
-| Booking creation | AI agent ✅ (still works) |
-| Waitlist enquiries | AI agent ✅ (still works) |
+| **Penny Outbound** | How many people on the waitlist Penny has called so far |
+| **Avg Response Time** | On average, how quickly Penny contacted someone after they were added to the waitlist |
 
-The AI booking agent continues to function exactly as before — it can still check availability, create bookings, and log enquiries. It simply can no longer read data it doesn't need.
-
----
-
-## 📋 Documentation: Guide for Other Apps Using the Same Database
-
-We've created a detailed technical guide (`security-update.md`) for any other application connected to this database. This ensures that if another tool or integration needs to be updated to work with these security changes, the instructions are clear and ready — including how to correctly assign admin roles, how to test that everything still works, and what to do if a rollback is ever needed.
-
----
-
-## 🔧 Code Quality: Clean Bill of Health
-
-As part of this update, we also resolved 3 minor code quality warnings that were flagged in the codebase. The app now passes all automated quality checks with zero warnings and zero errors, and the production build completes successfully.
-
----
-
-## ⏭️ Recommended Next Step (Phase 4)
-
-**What it is:** The AI booking agent currently uses a broad "guest" access key to communicate with the platform. While we've significantly restricted what that key can access, best practice is to give the agent its own dedicated, named connection — so its actions are traceable, auditable, and can be revoked independently if needed.
-
-**What it involves:** Creating a dedicated server-side integration point specifically for the ElevenLabs agent (approximately 2–4 hours of development work). This would be the final step to achieving enterprise-grade security across the platform.
-
-**Priority:** Recommended, but not urgent. The current setup is significantly more secure than it was before this update.
+This gives you visibility into how proactively waitlisted clients are being reached and whether there are delays worth addressing.
 
 ---
 
@@ -84,16 +68,20 @@ As part of this update, we also resolved 3 minor code quality warnings that were
 
 | Item | Status |
 |---|---|
-| Dashboard infinite loading fixed | ✅ Complete |
-| Performance improvements (faster load) | ✅ Complete |
-| Admin role security hardened | ✅ Complete |
-| Business data protected from unauthorised access | ✅ Complete |
-| AI booking agent unaffected | ✅ Verified |
-| Code quality — zero warnings | ✅ Complete |
-| Documentation for connected apps | ✅ Complete |
-| Dedicated agent API integration (Phase 4) | ⏳ Recommended next step |
+| Call Analytics — Inbound / Outbound filter tabs with counts | ✅ Live |
+| Call Analytics — Type badges (blue Inbound / green Outbound) on every row | ✅ Live |
+| Call Analytics — Outbound Calls summary card (count + avg duration) | ✅ Live |
+| Call Details — Inbound/Outbound indicator in the header | ✅ Live |
+| Waitlist — "Penny Called" column with date/time | ✅ Live |
+| Waitlist — "View Call" button to open full call transcript + results | ✅ Live |
+| Waitlist — Waitlist context card showing who was called and when | ✅ Live |
+| Waitlist Stats — Penny Outbound count + average response time | ✅ Live |
 
-The platform is stable, secure, and ready for production use. Please don't hesitate to reach out if you notice anything or have questions.
+**Where to test:**
+- [https://pmapp.hup.net.au/login](https://pmapp.hup.net.au/login) → **Call Analytics** (sidebar) — try the Inbound/Outbound tabs
+- [https://pmapp.hup.net.au/login](https://pmapp.hup.net.au/login) → **Waitlist** (sidebar) — look for the "Penny Called" column and "View Call" button
+
+Let us know if you'd like any changes to how the call details are presented or if you want additional metrics tracked!
 
 Cheers,  
 Development Team

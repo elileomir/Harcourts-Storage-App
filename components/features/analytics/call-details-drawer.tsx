@@ -21,13 +21,22 @@ import {
   FileText,
   X,
   Terminal,
+  PhoneIncoming,
+  PhoneOutgoing,
 } from "lucide-react";
 import { CallLog } from "@/hooks/use-analytics";
+
+interface WaitlistContext {
+  fullName: string;
+  facility: string;
+  calledAt: string;
+}
 
 interface CallDetailsDrawerProps {
   call: CallLog | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  waitlistContext?: WaitlistContext | null;
 }
 
 // Helper function to format message with markdown (bold tags and line breaks)
@@ -92,6 +101,7 @@ export function CallDetailsDrawer({
   call,
   open,
   onOpenChange,
+  waitlistContext,
 }: CallDetailsDrawerProps) {
   if (!call) return null;
 
@@ -119,9 +129,24 @@ export function CallDetailsDrawer({
         <div className="bg-white border-t-4 border-harcourts-blue px-8 py-6 relative shadow-[0_2px_8px_rgba(0,0,0,0.1)] z-10">
           <SheetHeader className="space-y-1">
             <div className="flex items-center justify-between">
-              <SheetTitle className="text-navy text-2xl font-bold tracking-tight">
-                Call Details
-              </SheetTitle>
+              <div className="flex items-center gap-3">
+                <SheetTitle className="text-navy text-2xl font-bold tracking-tight">
+                  Call Details
+                </SheetTitle>
+                <Badge
+                  className={`rounded-[4px] text-xs font-semibold border-0 px-3 py-1 ${
+                    call.type === "outbound"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-sky-100 text-sky-700"
+                  }`}
+                >
+                  {call.type === "outbound" ? (
+                    <><PhoneOutgoing className="h-3 w-3 mr-1" /> Outbound</>
+                  ) : (
+                    <><PhoneIncoming className="h-3 w-3 mr-1" /> Inbound</>
+                  )}
+                </Badge>
+              </div>
               <SheetClose className="rounded-[4px] p-2 hover:bg-gray-100 transition-colors text-navy focus:outline-none focus:ring-2 focus:ring-harcourts-blue/50">
                 <X className="h-5 w-5" />
                 <span className="sr-only">Close</span>
@@ -136,6 +161,35 @@ export function CallDetailsDrawer({
 
         <ScrollArea className="h-[calc(85vh-120px)] bg-[#F1F3F4]">
           <div className="px-8 py-8 space-y-8 max-w-5xl mx-auto">
+            {/* Waitlist Context Card (for outbound calls viewed from waitlist) */}
+            {waitlistContext && (
+              <Card className="border-none shadow-[0_2px_8px_rgba(0,0,0,0.1)] overflow-hidden rounded-[4px]">
+                <div className="bg-emerald-500 h-1 w-full" />
+                <CardHeader className="pb-3 bg-white">
+                  <CardTitle className="flex items-center gap-2 text-lg font-bold text-navy">
+                    <PhoneOutgoing className="h-5 w-5 text-emerald-600" />
+                    Waitlist Outbound Call
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="bg-white">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-xs font-bold text-mid-grey uppercase tracking-wider">Called</label>
+                      <p className="text-sm font-semibold text-navy mt-1">{waitlistContext.fullName}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-mid-grey uppercase tracking-wider">Facility</label>
+                      <p className="text-sm font-semibold text-navy mt-1">{waitlistContext.facility}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-mid-grey uppercase tracking-wider">Called At</label>
+                      <p className="text-sm font-semibold text-navy mt-1">{new Date(waitlistContext.calledAt).toLocaleString()}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Summary Card */}
             {call.transcript_summary && (
               <Card className="border-none shadow-[0_2px_8px_rgba(0,0,0,0.1)] overflow-hidden rounded-[4px]">

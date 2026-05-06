@@ -38,6 +38,7 @@ export type CallLog = {
   call_id: string;
   agent_id: string;
   platform?: string; // e.g. "elevenlabs" | "retell"
+  type?: string; // 'inbound' | 'outbound'
   start_time: string;
   end_time: string;
   duration_seconds: number;
@@ -109,6 +110,8 @@ export function useAnalytics() {
 
   // Calculate stats
   const totalCalls = calls?.length || 0;
+  const inboundCalls = calls?.filter((c) => c.type !== 'outbound') || [];
+  const outboundCalls = calls?.filter((c) => c.type === 'outbound') || [];
   const successfulHandoffs =
     calls?.filter((c) => c.handoff_success).length || 0;
   const handoffRate =
@@ -138,15 +141,25 @@ export function useAnalytics() {
     .sort(([, a], [, b]) => b - a)
     .slice(0, 3);
 
+  // Outbound-specific stats
+  const outboundCount = outboundCalls.length;
+  const inboundCount = inboundCalls.length;
+  const avgOutboundDuration = outboundCount > 0
+    ? Math.round(outboundCalls.reduce((acc, c) => acc + c.duration_seconds, 0) / outboundCount)
+    : 0;
+
   return {
     calls,
     isLoading,
     error,
     stats: {
       totalCalls,
+      inboundCount,
+      outboundCount,
       handoffRate,
       csatScore,
       topChurn,
+      avgOutboundDuration,
     },
   };
 }

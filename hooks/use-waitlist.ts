@@ -21,6 +21,8 @@ export type WaitlistRequest = {
   created_at: string;
   updated_at: string;
   last_notified?: string | null;
+  penny_called_at?: string | null;
+  call_id_reference?: string | null;
 };
 
 export type WaitlistRequestInput = Omit<
