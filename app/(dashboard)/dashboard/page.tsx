@@ -235,7 +235,7 @@ export default function DashboardHub() {
           </Link>
         </motion.div>
 
-        {/* Penny Outbound */}
+        {/* Penny Referee Check (Outbound) */}
         <motion.div variants={item} className="group relative">
           <Link href="/dashboard/penny-outbound" className="block h-full">
             <div className="relative h-full bg-gradient-to-br from-sky-500/5 to-blue-500/5 rounded-2xl p-8 overflow-hidden shadow-sm border border-sky-500/20 transition-all duration-300 hover:shadow-md hover:border-sky-500/40 hover:-translate-y-1 flex flex-col justify-between">
@@ -257,11 +257,11 @@ export default function DashboardHub() {
 
                 <div className="space-y-2">
                   <h2 className="font-display text-2xl font-bold tracking-tight text-[#001F49]">
-                    Penny Outbound
+                    Penny Referee Check
                   </h2>
                   <p className="text-slate-500 text-base max-w-md leading-relaxed">
                     Let Penny — your AI voice agent — call referees and run
-                    reference checks. Trigger from a form, replay any call.
+                    reference checks for tenancy applications.
                   </p>
                 </div>
               </div>

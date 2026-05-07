@@ -21,11 +21,11 @@ export default function PennyOutboundPage() {
                 <PhoneOutgoing className="w-5 h-5 text-harcourts-blue" aria-hidden="true" />
               </div>
               <h1 className="font-display text-3xl md:text-4xl font-bold text-[#001F49] tracking-tight">
-                Let Penny make a call
+                Penny Referee Check
               </h1>
             </div>
             <p className="text-gray-500 text-base mt-2 max-w-prose">
-              Penny is our voice AI agent. She calls the referee, runs through the reference-check script, and reports back. Calls appear in History.
+              Penny is our voice AI agent. She calls the referee, runs through the tenancy reference-check script, and reports back. Calls appear in History.
             </p>
           </div>
 

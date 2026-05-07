@@ -41,6 +41,8 @@ function getBreadcrumb(pathname: string): string | null {
   if (pathname.includes("/waitlist")) return "Waitlist";
   if (pathname.includes("/callback-requests")) return "Callback Requests";
   if (pathname.includes("/penny-storage-outbound")) return "Penny Storage Outbound";
+  if (pathname.includes("/penny-outbound-history")) return "Referee Call History";
+  if (pathname.includes("/penny-outbound")) return "Penny Referee Check";
   if (pathname.includes("/knowledge")) return "Knowledge Base";
   if (pathname.includes("/expense-approvals")) return "Expense History";
   if (pathname.includes("/expense-approval")) return "Expense Approval";
