@@ -19,6 +19,7 @@ import {
   PhoneOutgoing,
   BookOpen,
   LayoutDashboard,
+  Warehouse,
 } from "lucide-react";
 
 const container = {
@@ -128,7 +129,7 @@ export default function DashboardHub() {
         variants={container}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 md:grid-cols-2 gap-5 auto-rows-[minmax(280px,auto)]"
+        className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 auto-rows-auto md:auto-rows-[minmax(260px,auto)]"
       >
         {/* HERO: Storage Management - Featured Tool */}
         <motion.div variants={item} className="group relative md:row-span-2">
@@ -155,7 +156,7 @@ export default function DashboardHub() {
 
             {/* Sub-navigation buttons */}
             <div className="relative z-10 mt-6 pt-5 border-t border-white/15">
-              <div className="grid grid-cols-3 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {storageSubLinks.map((link) => (
                   <Link
                     key={link.name}
@@ -290,6 +291,62 @@ export default function DashboardHub() {
           </Link>
         </motion.div>
 
+        {/* Penny Storage Outbound */}
+        <motion.div variants={item} className="group relative">
+          <Link href="/dashboard/penny-storage-outbound" className="block h-full">
+            <div className="relative h-full bg-gradient-to-br from-emerald-500/5 to-green-500/5 rounded-2xl p-8 overflow-hidden shadow-sm border border-emerald-500/20 transition-all duration-300 hover:shadow-md hover:border-emerald-500/40 hover:-translate-y-1 flex flex-col justify-between">
+              <div className="absolute top-0 right-0 p-4 opacity-5">
+                <Warehouse className="w-32 h-32 text-emerald-600" />
+              </div>
+
+              {/* Content */}
+              <div className="relative z-10 flex flex-col gap-5">
+                <div className="inline-flex items-center gap-2 self-start bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                    New Feature
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <h2 className="font-display text-2xl font-bold tracking-tight text-[#001F49]">
+                    Penny Storage Outbound
+                  </h2>
+                  <p className="text-slate-500 text-base max-w-md leading-relaxed">
+                    Let Penny call waitlisted clients about available storage
+                    units. Smart form pre-fills from waitlist data.
+                  </p>
+                </div>
+              </div>
+
+              <div className="relative z-10 mt-6 pt-5 border-t border-emerald-100 flex items-center justify-between group-hover:border-emerald-200 transition-colors">
+                <span className="font-semibold text-base text-emerald-700">
+                  Make a call
+                </span>
+                <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 group-hover:text-emerald-800 transition-all duration-300">
+                  <ArrowRight className="w-4 h-4" />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  window.location.href = "/dashboard/analytics";
+                }}
+                className="relative z-20 mt-3 flex items-center gap-2 text-xs font-semibold text-emerald-600 hover:text-emerald-800 transition-colors cursor-pointer"
+              >
+                <BarChart3 className="w-3.5 h-3.5" />
+                View Call Analytics →
+              </button>
+            </div>
+          </Link>
+        </motion.div>
+
         {/* Quick Actions - Full Width */}
         <motion.div variants={item} className="md:col-span-2">
           <div className="h-full bg-[#001F49] rounded-2xl p-6 sm:p-8 text-white shadow-xl flex flex-col justify-between relative overflow-hidden">
@@ -307,7 +364,7 @@ export default function DashboardHub() {
                 </h3>
               </div>
 
-              <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 <Link
                   href="/dashboard/expense-approval"
                   className="flex flex-col p-5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 transition-all hover:-translate-y-0.5 group"
