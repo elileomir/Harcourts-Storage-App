@@ -20,6 +20,8 @@ import {
   BookOpen,
   LayoutDashboard,
   Warehouse,
+  Bot,
+  PenLine,
 } from "lucide-react";
 
 const container = {
@@ -347,6 +349,54 @@ export default function DashboardHub() {
           </Link>
         </motion.div>
 
+        {/* PM Copilot */}
+        <motion.div variants={item} className="group relative">
+          <Link href="/dashboard/copilot" className="block h-full">
+            <div className="relative h-full bg-gradient-to-br from-indigo-500/5 to-violet-500/5 rounded-2xl p-8 overflow-hidden shadow-sm border border-indigo-500/20 transition-all duration-300 hover:shadow-md hover:border-indigo-500/40 hover:-translate-y-1 flex flex-col justify-between">
+              <div className="absolute top-0 right-0 p-4 opacity-5">
+                <Bot className="w-32 h-32 text-indigo-600" />
+              </div>
+
+              {/* Content */}
+              <div className="relative z-10 flex flex-col gap-5">
+                <div className="inline-flex items-center gap-2 self-start bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500" />
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700">
+                    New Feature
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <h2 className="font-display text-2xl font-bold tracking-tight text-[#001F49]">
+                    PM Copilot
+                  </h2>
+                  <p className="text-slate-500 text-base max-w-md leading-relaxed">
+                    Your leasing assistant — turn a lease or form into a signable
+                    agreement, gather details with a shareable link, and track signing.
+                  </p>
+                </div>
+              </div>
+
+              <div className="relative z-10 mt-6 pt-5 border-t border-indigo-100 flex items-center justify-between group-hover:border-indigo-200 transition-colors">
+                <span className="font-semibold text-base text-indigo-700">
+                  Open Copilot
+                </span>
+                <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center group-hover:bg-indigo-200 group-hover:text-indigo-800 transition-all duration-300">
+                  <ArrowRight className="w-4 h-4" />
+                </div>
+              </div>
+
+              <span className="relative z-10 mt-3 flex items-center gap-2 text-xs font-semibold text-indigo-600">
+                <PenLine className="w-3.5 h-3.5" />
+                Smart forms · DocuSign signing
+              </span>
+            </div>
+          </Link>
+        </motion.div>
+
         {/* Quick Actions - Full Width */}
         <motion.div variants={item} className="md:col-span-2">
           <div className="h-full bg-[#001F49] rounded-2xl p-6 sm:p-8 text-white shadow-xl flex flex-col justify-between relative overflow-hidden">
@@ -365,6 +415,21 @@ export default function DashboardHub() {
               </div>
 
               <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                <Link
+                  href="/dashboard/copilot"
+                  className="flex flex-col p-5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 transition-all hover:-translate-y-0.5 group"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-indigo-500/20 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                    <Bot className="w-4 h-4 text-indigo-300" />
+                  </div>
+                  <span className="font-semibold text-sm text-white">
+                    PM Copilot
+                  </span>
+                  <span className="text-xs text-slate-400 mt-1">
+                    Leasing assistant
+                  </span>
+                </Link>
+
                 <Link
                   href="/dashboard/expense-approval"
                   className="flex flex-col p-5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 transition-all hover:-translate-y-0.5 group"

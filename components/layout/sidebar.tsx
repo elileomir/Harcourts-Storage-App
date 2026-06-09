@@ -18,6 +18,7 @@ import {
   Clock,
   FileText,
   Receipt,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "PM Copilot", href: "/dashboard/copilot", icon: Sparkles },
   { name: "Units", href: "/dashboard/units", icon: Box },
   { name: "Bookings", href: "/dashboard/bookings", icon: Users },
   { name: "Analytics", href: "/dashboard/analytics", icon: Phone },
