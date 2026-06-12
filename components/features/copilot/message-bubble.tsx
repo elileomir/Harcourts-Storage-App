@@ -26,6 +26,7 @@ const MD_CLASS = cn(
   "[&_h4]:mb-1 [&_h4]:mt-2 [&_h4]:font-semibold",
   "[&_ul]:my-1.5 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-1.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5",
   "[&_a]:font-semibold [&_a]:text-[#00ADEF] [&_a]:underline",
+  "[&_img]:my-2 [&_img]:block [&_img]:max-w-full [&_img]:rounded-lg [&_img]:border [&_img]:border-slate-200 [&_img]:shadow-sm",
   "[&_strong]:font-semibold",
   "[&_code]:rounded [&_code]:bg-slate-100 [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[13px]",
   "[&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-[#001F49] [&_pre]:p-3 [&_pre]:text-slate-100",

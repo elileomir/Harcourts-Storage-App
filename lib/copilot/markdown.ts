@@ -21,6 +21,11 @@ function escapeHtml(s: string): string {
 
 function inlineMd(s: string): string {
   return s
+    // images first, so ![alt](url) isn't caught by the link rule below
+    .replace(
+      /!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g,
+      '<img src="$2" alt="$1" loading="lazy" />',
+    )
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/(^|[^*_])[*_]([^*_]+)[*_](?!\w)/g, "$1<em>$2</em>")
