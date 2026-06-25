@@ -38,6 +38,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Booking, useBookings } from "@/hooks/use-bookings";
+import { RateBadge } from "@/components/features/bookings/rate-badge";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { exportToExcel } from "@/lib/excel-utils";
 import { FileDown } from "lucide-react";
@@ -276,6 +277,7 @@ export function BookingsTable({
               <TableHead className="w-[180px] lg:w-[220px]">Customer</TableHead>
               <TableHead>Platform</TableHead>
               <TableHead>Unit</TableHead>
+              <TableHead>Rent</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Lease Period</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -285,7 +287,7 @@ export function BookingsTable({
             {filteredBookings.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No bookings found matching your criteria.
@@ -359,6 +361,13 @@ export function BookingsTable({
                         {booking.storage_units.facility}
                       </span>
                     </button>
+                  </TableCell>
+                  <TableCell>
+                    <RateBadge
+                      monthlyRent={booking.monthly_rent ?? booking.current_rate}
+                      newRate={booking.new_rate}
+                      effectiveDate={booking.rate_effective_date}
+                    />
                   </TableCell>
                   <TableCell>
                     <Select

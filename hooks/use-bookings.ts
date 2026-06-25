@@ -20,6 +20,9 @@ export type Booking = {
     | "Rejected"
     | "Cancelled";
   monthly_rent: number | null;
+  current_rate?: number | null;
+  new_rate?: number | null;
+  rate_effective_date?: string | null;
   storage_units: {
     unit_number: string;
     facility: string;
