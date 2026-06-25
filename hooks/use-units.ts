@@ -13,6 +13,8 @@ export type Unit = {
   bond: string;
   access_hours: string;
   status: "Available" | "Submitted" | "Unavailable";
+  scheduled_status?: string | null;
+  scheduled_status_date?: string | null;
 };
 
 export type UnitInput = Omit<Unit, "id">;

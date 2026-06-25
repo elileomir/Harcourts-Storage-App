@@ -24,12 +24,26 @@ export function UnitDialog({ open, onOpenChange, unit, onSubmit }: UnitDialogPro
         price: unit?.price || '',
         bond: unit?.bond || '',
         access_hours: unit?.access_hours || '24/7',
-        status: unit?.status || 'Available'
+        status: unit?.status || 'Available',
+        scheduled_status: unit?.scheduled_status || '',
+        scheduled_status_date: unit?.scheduled_status_date
+            ? unit.scheduled_status_date.split('T')[0]
+            : ''
     })
+
+    const clearSchedule = () => {
+        setFormData({ ...formData, scheduled_status: '', scheduled_status_date: '' })
+    }
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
-        onSubmit(formData)
+        const hasSchedule =
+            !!formData.scheduled_status && !!formData.scheduled_status_date
+        onSubmit({
+            ...formData,
+            scheduled_status: hasSchedule ? formData.scheduled_status : null,
+            scheduled_status_date: hasSchedule ? formData.scheduled_status_date : null
+        })
         onOpenChange(false)
     }
 
@@ -128,6 +142,46 @@ export function UnitDialog({ open, onOpenChange, unit, onSubmit }: UnitDialogPro
                                 <SelectItem value="Unavailable">Unavailable</SelectItem>
                             </SelectContent>
                         </Select>
+                    </div>
+                    <div className="space-y-3 rounded-md border bg-sky-50/40 p-3">
+                        <div className="flex items-center justify-between">
+                            <Label className="text-sm font-medium text-sky-900">Schedule status change</Label>
+                            {(formData.scheduled_status || formData.scheduled_status_date) && (
+                                <button
+                                    type="button"
+                                    onClick={clearSchedule}
+                                    className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+                                >
+                                    Clear schedule
+                                </button>
+                            )}
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="scheduled_status" className="text-right text-sm">Status</Label>
+                            <Select
+                                value={formData.scheduled_status || undefined}
+                                onValueChange={(value) => setFormData({ ...formData, scheduled_status: value })}
+                            >
+                                <SelectTrigger id="scheduled_status" className="col-span-3">
+                                    <SelectValue placeholder="No change scheduled" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Available">Available</SelectItem>
+                                    <SelectItem value="Unavailable">Unavailable</SelectItem>
+                                    <SelectItem value="UnderConstruction">Under Construction</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="scheduled_status_date" className="text-right text-sm">On date</Label>
+                            <Input
+                                id="scheduled_status_date"
+                                type="date"
+                                value={formData.scheduled_status_date ?? ''}
+                                onChange={(e) => setFormData({ ...formData, scheduled_status_date: e.target.value })}
+                                className="col-span-3"
+                            />
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button type="submit">{unit ? 'Save Changes' : 'Add Unit'}</Button>

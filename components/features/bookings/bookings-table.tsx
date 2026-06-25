@@ -39,6 +39,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Booking, useBookings } from "@/hooks/use-bookings";
 import { RateBadge } from "@/components/features/bookings/rate-badge";
+import { ScheduleBadge } from "@/components/features/scheduling/schedule-badge";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { exportToExcel } from "@/lib/excel-utils";
 import { FileDown } from "lucide-react";
@@ -382,46 +383,52 @@ export function BookingsTable({
                     />
                   </TableCell>
                   <TableCell>
-                    <Select
-                      value={booking.status}
-                      onValueChange={(value) =>
-                        onStatusUpdate(booking.id, value)
-                      }
-                    >
-                      <SelectTrigger
-                        className={`h-7 w-auto min-w-[100px] gap-1 rounded-[4px] border px-2 py-0.5 text-xs font-semibold shadow-none focus:ring-0 ${getStatusColor(
-                          booking.status,
-                        )}`}
-                        style={{
-                          backgroundColor:
-                            booking.status === "Approved"
-                              ? "#2C9143"
-                              : booking.status === "Active"
-                                ? "#2563EB"
-                                : booking.status === "Pending"
-                                  ? "#C4642F"
-                                  : booking.status === "Ending"
-                                    ? "#EA580C"
-                                    : booking.status === "Completed"
-                                      ? "#6B7280"
-                                      : booking.status === "Cancelled" ||
-                                          booking.status === "Rejected"
-                                        ? "#DC2626"
-                                        : undefined,
-                        }}
+                    <div className="flex flex-col gap-1">
+                      <Select
+                        value={booking.status}
+                        onValueChange={(value) =>
+                          onStatusUpdate(booking.id, value)
+                        }
                       >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Pending">Pending</SelectItem>
-                        <SelectItem value="Approved">Approved</SelectItem>
-                        <SelectItem value="Active">Active</SelectItem>
-                        <SelectItem value="Ending">Ending</SelectItem>
-                        <SelectItem value="Completed">Completed</SelectItem>
-                        <SelectItem value="Rejected">Rejected</SelectItem>
-                        <SelectItem value="Cancelled">Cancelled</SelectItem>
-                      </SelectContent>
-                    </Select>
+                        <SelectTrigger
+                          className={`h-7 w-auto min-w-[100px] gap-1 rounded-[4px] border px-2 py-0.5 text-xs font-semibold shadow-none focus:ring-0 ${getStatusColor(
+                            booking.status,
+                          )}`}
+                          style={{
+                            backgroundColor:
+                              booking.status === "Approved"
+                                ? "#2C9143"
+                                : booking.status === "Active"
+                                  ? "#2563EB"
+                                  : booking.status === "Pending"
+                                    ? "#C4642F"
+                                    : booking.status === "Ending"
+                                      ? "#EA580C"
+                                      : booking.status === "Completed"
+                                        ? "#6B7280"
+                                        : booking.status === "Cancelled" ||
+                                            booking.status === "Rejected"
+                                          ? "#DC2626"
+                                          : undefined,
+                          }}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Pending">Pending</SelectItem>
+                          <SelectItem value="Approved">Approved</SelectItem>
+                          <SelectItem value="Active">Active</SelectItem>
+                          <SelectItem value="Ending">Ending</SelectItem>
+                          <SelectItem value="Completed">Completed</SelectItem>
+                          <SelectItem value="Rejected">Rejected</SelectItem>
+                          <SelectItem value="Cancelled">Cancelled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <ScheduleBadge
+                        scheduledStatus={booking.scheduled_status}
+                        scheduledStatusDate={booking.scheduled_status_date}
+                      />
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col text-sm">

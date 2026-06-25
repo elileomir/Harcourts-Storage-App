@@ -38,6 +38,7 @@ import { useBookings } from "@/hooks/use-bookings";
 import { useSearchParams } from "next/navigation";
 import { Unit, useUnits } from "@/hooks/use-units";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { ScheduleBadge } from "@/components/features/scheduling/schedule-badge";
 import { exportToExcel } from "@/lib/excel-utils";
 import { FileDown } from "lucide-react";
 import { toast } from "sonner";
@@ -339,33 +340,43 @@ export function UnitsTable({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Select
-                      value={unit.status}
-                      onValueChange={(value) => onStatusUpdate(unit.id, value)}
-                    >
-                      <SelectTrigger
-                        className={`h-7 w-auto min-w-[110px] gap-1 rounded-[4px] border px-2.5 py-1 text-xs font-semibold shadow-none focus:ring-0 ${getStatusColor(
-                          unit.status
-                        )}`}
-                        style={{
-                          backgroundColor:
-                            unit.status === "Available"
-                              ? "#2C9143"
-                              : unit.status === "Submitted"
-                              ? "#C4642F"
-                              : unit.status === "Unavailable"
-                              ? "#DC2626"
-                              : undefined,
-                        }}
+                    <div className="flex flex-col gap-1">
+                      <Select
+                        value={unit.status}
+                        onValueChange={(value) =>
+                          onStatusUpdate(unit.id, value)
+                        }
                       >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Available">Available</SelectItem>
-                        <SelectItem value="Submitted">Submitted</SelectItem>
-                        <SelectItem value="Unavailable">Unavailable</SelectItem>
-                      </SelectContent>
-                    </Select>
+                        <SelectTrigger
+                          className={`h-7 w-auto min-w-[110px] gap-1 rounded-[4px] border px-2.5 py-1 text-xs font-semibold shadow-none focus:ring-0 ${getStatusColor(
+                            unit.status
+                          )}`}
+                          style={{
+                            backgroundColor:
+                              unit.status === "Available"
+                                ? "#2C9143"
+                                : unit.status === "Submitted"
+                                ? "#C4642F"
+                                : unit.status === "Unavailable"
+                                ? "#DC2626"
+                                : undefined,
+                          }}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Available">Available</SelectItem>
+                          <SelectItem value="Submitted">Submitted</SelectItem>
+                          <SelectItem value="Unavailable">
+                            Unavailable
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <ScheduleBadge
+                        scheduledStatus={unit.scheduled_status}
+                        scheduledStatusDate={unit.scheduled_status_date}
+                      />
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">

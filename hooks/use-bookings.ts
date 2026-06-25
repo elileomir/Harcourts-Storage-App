@@ -23,6 +23,8 @@ export type Booking = {
   current_rate?: number | null;
   new_rate?: number | null;
   rate_effective_date?: string | null;
+  scheduled_status?: string | null;
+  scheduled_status_date?: string | null;
   storage_units: {
     unit_number: string;
     facility: string;
