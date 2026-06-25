@@ -337,16 +337,28 @@ export function BookingsTable({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={`${
-                        booking.platform === "retell"
+                    {(() => {
+                      const p = booking.platform;
+                      const isManual =
+                        p === "rfs-migration" || p === "manual";
+                      const label =
+                        p === "retell"
+                          ? "Retell"
+                          : isManual
+                          ? "Manual"
+                          : "ElevenLabs";
+                      const cls =
+                        p === "retell"
                           ? "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-50"
-                          : "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50"
-                      }`}
-                    >
-                      {booking.platform === "retell" ? "Retell" : "ElevenLabs"}
-                    </Badge>
+                          : isManual
+                          ? "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-50"
+                          : "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50";
+                      return (
+                        <Badge variant="outline" className={cls}>
+                          {label}
+                        </Badge>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell>
                     <button
