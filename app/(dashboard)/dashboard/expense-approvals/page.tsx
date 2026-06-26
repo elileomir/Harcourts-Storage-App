@@ -106,7 +106,7 @@ function StatCard({
     title: string;
     value: string;
     subtitle?: string;
-    icon: React.ElementType;
+    icon: React.ComponentType<{ className?: string }>;
     color: string;
 }) {
     return (

@@ -22,7 +22,7 @@ function SectionHeader({
     stepIndex,
     onEdit,
 }: {
-    icon: React.ElementType;
+    icon: React.ComponentType<{ className?: string }>;
     title: string;
     stepIndex: number;
     onEdit: (step: number) => void;
